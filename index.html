@@ -699,6 +699,36 @@
       border-radius: 2px;
       padding: 0 1px;
     }
+
+    /* ── Category filter bar ─────────────────────────────── */
+    .itin-filter-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .itin-filter-btn {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 99px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+
+    .itin-filter-btn:hover { border-color: #9ca3af; color: var(--text); }
+
+    .itin-filter-btn.active {
+      background: var(--london);
+      border-color: var(--london);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -1420,10 +1450,30 @@
       clearBtn.textContent = '✕';
       clearBtn.setAttribute('aria-label', 'Clear search');
       searchWrap.append(searchInput, clearBtn);
+
+      // Category filter bar
+      const CATEGORIES = ['All', 'Food', 'Transport', 'Landmark', 'Museum', 'Shopping', 'Music'];
+      const filterBar = document.createElement('div');
+      filterBar.className = 'itin-filter-bar';
+      let activeFilter = 'all';
+      const filterBtns = CATEGORIES.map(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'itin-filter-btn' + (cat === 'All' ? ' active' : '');
+        btn.textContent = cat;
+        btn.dataset.cat = cat.toLowerCase();
+        btn.addEventListener('click', () => {
+          activeFilter = btn.dataset.cat;
+          filterBtns.forEach(b => b.classList.toggle('active', b === btn));
+          applyFilters();
+        });
+        filterBar.appendChild(btn);
+        return btn;
+      });
+
       const noResults = document.createElement('div');
       noResults.className = 'itin-no-results';
       noResults.textContent = 'No stops match your search.';
-      secItin.append(searchWrap, noResults);
+      secItin.append(searchWrap, filterBar, noResults);
 
       const dayMap = groupByDay(itinRows);
       const dayCards = [];
@@ -1434,57 +1484,54 @@
           day.city,
           ...day.stops.map(s => [s.name, s.category, s.note].filter(Boolean).join(' '))
         ].join(' ').toLowerCase();
+        card.dataset.categories = day.stops.map(s => (s.category || '').toLowerCase()).join(' ');
         dayCards.push({ card, day });
         secItin.appendChild(card);
       }
 
-      function applySearch(q) {
-        const term = q.trim().toLowerCase();
+      function applyFilters() {
+        const term = searchInput.value.trim().toLowerCase();
         clearBtn.classList.toggle('visible', term.length > 0);
         let anyVisible = false;
         for (const { card, day } of dayCards) {
-          if (!term) {
-            card.hidden = false;
-            // Remove any highlights
-            card.querySelectorAll('mark.search-hl').forEach(m => {
-              m.replaceWith(document.createTextNode(m.textContent));
-            });
-            // Restore stop names from data attribute
-            card.querySelectorAll('.stop-name[data-original]').forEach(el => {
-              el.textContent = el.dataset.original;
-              delete el.dataset.original;
-            });
+          const matchesCat = activeFilter === 'all' || card.dataset.categories.includes(activeFilter);
+          const matchesSearch = !term || card.dataset.searchText.includes(term);
+          const visible = matchesCat && matchesSearch;
+          card.hidden = !visible;
+
+          // Restore stop names before re-highlighting
+          card.querySelectorAll('.stop-name[data-original]').forEach(el => {
+            el.textContent = el.dataset.original;
+            delete el.dataset.original;
+          });
+
+          if (visible) {
             anyVisible = true;
-            continue;
-          }
-          const matches = card.dataset.searchText.includes(term);
-          card.hidden = !matches;
-          if (matches) {
-            anyVisible = true;
-            // Highlight matching stop names
-            card.querySelectorAll('.stop-name').forEach(el => {
-              const original = el.dataset.original || el.textContent;
-              el.dataset.original = original;
-              const idx = original.toLowerCase().indexOf(term);
-              if (idx === -1) {
-                el.textContent = original;
-              } else {
-                el.innerHTML = '';
-                el.appendChild(document.createTextNode(original.slice(0, idx)));
-                const mark = document.createElement('mark');
-                mark.className = 'search-hl';
-                mark.textContent = original.slice(idx, idx + term.length);
-                el.appendChild(mark);
-                el.appendChild(document.createTextNode(original.slice(idx + term.length)));
-              }
-            });
+            if (term) {
+              card.querySelectorAll('.stop-name').forEach(el => {
+                const original = el.dataset.original || el.textContent;
+                el.dataset.original = original;
+                const idx = original.toLowerCase().indexOf(term);
+                if (idx === -1) {
+                  el.textContent = original;
+                } else {
+                  el.innerHTML = '';
+                  el.appendChild(document.createTextNode(original.slice(0, idx)));
+                  const mark = document.createElement('mark');
+                  mark.className = 'search-hl';
+                  mark.textContent = original.slice(idx, idx + term.length);
+                  el.appendChild(mark);
+                  el.appendChild(document.createTextNode(original.slice(idx + term.length)));
+                }
+              });
+            }
           }
         }
         noResults.classList.toggle('visible', !anyVisible);
       }
 
-      searchInput.addEventListener('input', () => applySearch(searchInput.value));
-      clearBtn.addEventListener('click', () => { searchInput.value = ''; applySearch(''); searchInput.focus(); });
+      searchInput.addEventListener('input', applyFilters);
+      clearBtn.addEventListener('click', () => { searchInput.value = ''; applyFilters(); searchInput.focus(); });
 
       // — Checklist section
       const secCheck = document.createElement('section');
