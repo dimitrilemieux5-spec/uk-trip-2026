@@ -729,6 +729,129 @@
       border-color: var(--london);
       color: white;
     }
+
+    /* ── Map tab ─────────────────────────────────────────── */
+    .map-city-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .map-city-btn {
+      flex: 1;
+      padding: 7px 4px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+
+    .map-city-btn.active-london    { background: var(--london);    border-color: var(--london);    color: white; }
+    .map-city-btn.active-edinburgh { background: var(--edinburgh); border-color: var(--edinburgh); color: white; }
+    .map-city-btn.active-all       { background: #374151;          border-color: #374151;          color: white; }
+
+    #places-map-container {
+      height: 380px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      background: #e8eaf6;
+    }
+
+    .places-list {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .places-list-header {
+      padding: 10px 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .place-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .place-row:last-child { border-bottom: none; }
+    .place-row:hover { background: #f9fafb; }
+
+    .place-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .place-name {
+      font-size: 0.88rem;
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .place-city-badge {
+      font-size: 0.62rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+
+    .place-city-badge.london    { background: var(--london-light);    color: var(--london); }
+    .place-city-badge.edinburgh { background: var(--edinburgh-light); color: var(--edinburgh); }
+
+    .places-no-results {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 40px 0;
+      display: none;
+    }
+
+    .places-no-results.visible { display: block; }
+
+    .map-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-bottom: 12px;
+    }
+
+    .map-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .map-legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -740,6 +863,7 @@
 
 <nav id="tabs">
   <button data-tab="itinerary" class="active">Itinerary</button>
+  <button data-tab="places">Map</button>
   <button data-tab="checklist">Checklist</button>
   <button data-tab="budget">Budget</button>
 </nav>
@@ -760,6 +884,7 @@
   const ITINERARY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=0&single=true&output=csv';
   const CHECKLIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=195264691&single=true&output=csv';
   const BUDGET_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=142940218&single=true&output=csv';
+  const PLACES_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=226013303&single=true&output=csv';
   const GBP_TO_CAD = 1.72; // update before trip if needed
 
   // ── CSV PARSER ──────────────────────────────────────────────────
@@ -1395,6 +1520,235 @@
     }
   }
 
+  // ── PLACES MAP RENDERER ─────────────────────────────────────────
+  const PLACE_COLORS = {
+    food:      '#f97316',
+    transport: '#3b82f6',
+    landmark:  '#16a34a',
+    museum:    '#db2777',
+    shopping:  '#7c3aed',
+    music:     '#dc2626',
+    other:     '#6b7280',
+  };
+
+  function placeColor(cat) {
+    return PLACE_COLORS[(cat || '').toLowerCase()] || PLACE_COLORS.other;
+  }
+
+  function renderMapTab(places) {
+    const section = document.createElement('section');
+    section.id = 'view-places';
+
+    const controls = document.createElement('div');
+
+    // City toggle
+    const cityToggle = document.createElement('div');
+    cityToggle.className = 'map-city-toggle';
+    let activeCity = 'all';
+    const cityDefs = [
+      { key: 'all',       label: 'All',       cls: 'active-all' },
+      { key: 'london',    label: 'London',    cls: 'active-london' },
+      { key: 'edinburgh', label: 'Edinburgh', cls: 'active-edinburgh' },
+    ];
+    const cityBtns = cityDefs.map(def => {
+      const btn = document.createElement('button');
+      btn.className = 'map-city-btn' + (def.key === 'all' ? ' active-all' : '');
+      btn.textContent = def.label;
+      btn.addEventListener('click', () => {
+        activeCity = def.key;
+        cityBtns.forEach((b, i) => b.className = 'map-city-btn' + (cityDefs[i].key === activeCity ? ' ' + cityDefs[i].cls : ''));
+        applyPlaceFilters();
+      });
+      cityToggle.appendChild(btn);
+      return btn;
+    });
+
+    // Search bar
+    const searchWrap = document.createElement('div');
+    searchWrap.className = 'itin-search-wrap';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'search';
+    searchInput.className = 'itin-search-input';
+    searchInput.placeholder = 'Search places…';
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'itin-search-clear';
+    clearBtn.textContent = '✕';
+    clearBtn.addEventListener('click', () => { searchInput.value = ''; applyPlaceFilters(); searchInput.focus(); });
+    searchWrap.append(searchInput, clearBtn);
+    searchInput.addEventListener('input', applyPlaceFilters);
+
+    // Category filter bar
+    const PLACE_CATS = ['All', 'Food', 'Transport', 'Landmark', 'Museum', 'Shopping', 'Music'];
+    const filterBar = document.createElement('div');
+    filterBar.className = 'itin-filter-bar';
+    let activeCat = 'all';
+    const catBtns = PLACE_CATS.map(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'itin-filter-btn' + (cat === 'All' ? ' active' : '');
+      btn.textContent = cat;
+      btn.addEventListener('click', () => {
+        activeCat = cat.toLowerCase();
+        catBtns.forEach(b => b.classList.toggle('active', b === btn));
+        applyPlaceFilters();
+      });
+      filterBar.appendChild(btn);
+      return btn;
+    });
+
+    // Legend
+    const legend = document.createElement('div');
+    legend.className = 'map-legend';
+    Object.entries(PLACE_COLORS).forEach(([cat, color]) => {
+      const item = document.createElement('div');
+      item.className = 'map-legend-item';
+      const dot = document.createElement('span');
+      dot.className = 'map-legend-dot';
+      dot.style.background = color;
+      item.append(dot, document.createTextNode(cat.charAt(0).toUpperCase() + cat.slice(1)));
+      legend.appendChild(item);
+    });
+
+    controls.append(cityToggle, searchWrap, filterBar, legend);
+
+    // Map container
+    const mapContainer = document.createElement('div');
+    mapContainer.id = 'places-map-container';
+
+    // Place list
+    const noResults = document.createElement('div');
+    noResults.className = 'places-no-results';
+    noResults.textContent = 'No places match your filters.';
+
+    const listWrap = document.createElement('div');
+    listWrap.className = 'places-list';
+    const listHeader = document.createElement('div');
+    listHeader.className = 'places-list-header';
+    listHeader.textContent = 'Places';
+    listWrap.appendChild(listHeader);
+
+    section.append(controls, mapContainer, noResults, listWrap);
+
+    // Build map + markers after Maps API is ready
+    const validPlaces = places.filter(p => p.lat && p.lng && parseFloat(p.lat) && parseFloat(p.lng));
+
+    whenMapsReady(() => {
+      const map = new google.maps.Map(mapContainer, {
+        mapTypeControl: false, streetViewControl: false,
+        fullscreenControl: false, zoomControl: true,
+        center: { lat: 52.5, lng: -1.5 }, zoom: 6,
+      });
+
+      let openInfoWindow = null;
+
+      // Build markers and list rows
+      const entries = validPlaces.map(p => {
+        const color = placeColor(p.category);
+        const pos = { lat: parseFloat(p.lat), lng: parseFloat(p.lng) };
+
+        const marker = new google.maps.Marker({
+          position: pos, map,
+          title: p.name,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+          },
+        });
+
+        const infoContent = `
+          <div style="max-width:220px;font-family:-apple-system,sans-serif;">
+            <strong style="font-size:0.9rem;">${p.name}</strong><br/>
+            <span style="font-size:0.75rem;color:#6b7280;text-transform:capitalize;">${p.category || 'other'}</span>
+            ${p.note_en ? `<p style="font-size:0.8rem;margin:6px 0 4px;">${p.note_en}</p>` : ''}
+            ${p.maps_url ? `<a href="${p.maps_url}" target="_blank" style="font-size:0.8rem;color:#1a237e;font-weight:600;">Open in Maps →</a>` : ''}
+          </div>`;
+        const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+
+        marker.addListener('click', () => {
+          if (openInfoWindow) openInfoWindow.close();
+          infoWindow.open(map, marker);
+          openInfoWindow = infoWindow;
+        });
+
+        // List row
+        const row = document.createElement('div');
+        row.className = 'place-row';
+        const dot = document.createElement('span');
+        dot.className = 'place-dot';
+        dot.style.background = color;
+        const name = document.createElement('span');
+        name.className = 'place-name';
+        name.textContent = p.name;
+        const catPill = document.createElement('span');
+        catPill.className = `cat-pill cat-${(p.category || 'other').toLowerCase()}`;
+        catPill.textContent = p.category || 'other';
+        const cityBadge = document.createElement('span');
+        const cityKey = (p.city || '').toLowerCase().includes('edinburgh') ? 'edinburgh' : 'london';
+        cityBadge.className = `place-city-badge ${cityKey}`;
+        cityBadge.textContent = cityKey === 'edinburgh' ? 'EDI' : 'LDN';
+        row.append(dot, name, catPill, cityBadge);
+
+        row.addEventListener('click', () => {
+          map.panTo(pos);
+          map.setZoom(15);
+          if (openInfoWindow) openInfoWindow.close();
+          infoWindow.open(map, marker);
+          openInfoWindow = infoWindow;
+          mapContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        listWrap.appendChild(row);
+
+        return {
+          marker, row, p,
+          searchText: [p.name, p.category, p.note_en, p.city].filter(Boolean).join(' ').toLowerCase(),
+          cityKey,
+        };
+      });
+
+      function fitVisible(visibleEntries) {
+        if (!visibleEntries.length) return;
+        const bounds = new google.maps.LatLngBounds();
+        visibleEntries.forEach(e => bounds.extend(e.marker.getPosition()));
+        map.fitBounds(bounds);
+      }
+
+      function applyPlaceFilters() {
+        const term = searchInput.value.trim().toLowerCase();
+        clearBtn.classList.toggle('visible', term.length > 0);
+        const visible = [];
+        entries.forEach(e => {
+          const matchCity = activeCity === 'all' || e.cityKey === activeCity;
+          const matchCat  = activeCat === 'all'  || (e.p.category || '').toLowerCase() === activeCat;
+          const matchSearch = !term || e.searchText.includes(term);
+          const show = matchCity && matchCat && matchSearch;
+          e.marker.setVisible(show);
+          e.row.hidden = !show;
+          if (show) visible.push(e);
+        });
+        listHeader.textContent = `Places (${visible.length})`;
+        noResults.classList.toggle('visible', visible.length === 0);
+        if (visible.length) fitVisible(visible);
+      }
+
+      // expose to outer scope so city/cat/search handlers work
+      window._applyPlaceFilters = applyPlaceFilters;
+
+      // Wire up controls that need map to be ready
+      applyPlaceFilters();
+    });
+
+    // Re-wire filter controls to call the map-ready version
+    function applyPlaceFilters() {
+      if (window._applyPlaceFilters) window._applyPlaceFilters();
+    }
+
+    return section;
+  }
+
   // ── TAB SWITCHING ───────────────────────────────────────────────
   document.getElementById('tabs').addEventListener('click', e => {
     const tab = e.target.dataset.tab;
@@ -1413,21 +1767,23 @@
     loadMapsAPI();
 
     try {
-      const [itinRes, checkRes, budgetRes] = await Promise.all([
-        fetch(ITINERARY_URL), fetch(CHECKLIST_URL), fetch(BUDGET_URL)
+      const [itinRes, checkRes, budgetRes, placesRes] = await Promise.all([
+        fetch(ITINERARY_URL), fetch(CHECKLIST_URL), fetch(BUDGET_URL), fetch(PLACES_URL)
       ]);
 
-      if (!itinRes.ok)   throw new Error(`Itinerary fetch failed: HTTP ${itinRes.status}`);
-      if (!checkRes.ok)  throw new Error(`Checklist fetch failed: HTTP ${checkRes.status}`);
-      if (!budgetRes.ok) throw new Error(`Budget fetch failed: HTTP ${budgetRes.status}`);
+      if (!itinRes.ok)    throw new Error(`Itinerary fetch failed: HTTP ${itinRes.status}`);
+      if (!checkRes.ok)   throw new Error(`Checklist fetch failed: HTTP ${checkRes.status}`);
+      if (!budgetRes.ok)  throw new Error(`Budget fetch failed: HTTP ${budgetRes.status}`);
+      if (!placesRes.ok)  throw new Error(`Places fetch failed: HTTP ${placesRes.status}`);
 
-      const [itinText, checkText, budgetText] = await Promise.all([
-        itinRes.text(), checkRes.text(), budgetRes.text()
+      const [itinText, checkText, budgetText, placesText] = await Promise.all([
+        itinRes.text(), checkRes.text(), budgetRes.text(), placesRes.text()
       ]);
 
       const itinRows   = parseCSV(itinText);
       const checkRows  = parseCSV(checkText);
       const budgetRows = parseCSV(budgetText);
+      const placesRows = parseCSV(placesText);
 
       // Build DOM
       app.innerHTML = '';
@@ -1533,6 +1889,9 @@
       searchInput.addEventListener('input', applyFilters);
       clearBtn.addEventListener('click', () => { searchInput.value = ''; applyFilters(); searchInput.focus(); });
 
+      // — Places / Map section
+      const secPlaces = renderMapTab(placesRows);
+
       // — Checklist section
       const secCheck = document.createElement('section');
       secCheck.id = 'view-checklist';
@@ -1541,7 +1900,7 @@
       // — Budget section
       const secBudget = document.createElement('section');
       secBudget.id = 'view-budget';
-      app.append(secItin, secCheck, secBudget);
+      app.append(secItin, secPlaces, secCheck, secBudget);
       renderBudget(budgetRows);
 
       // FAB for budget tab

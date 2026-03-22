@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uk-trip-v5';
+const CACHE_NAME = 'uk-trip-v6';
 const STATIC_ASSETS = ['/uk-trip-2026/', '/uk-trip-2026/index.html'];
 
 self.addEventListener('install', event => {
