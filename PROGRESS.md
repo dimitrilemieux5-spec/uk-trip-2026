@@ -99,8 +99,63 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 `date`, `city`, `day_number`, `day_theme`, `stop_order`, `stop_name`, `stop_start`, `stop_end`, `stop_category`, `stop_cost`, `stop_note_en`, `maps_url`, `lat`, `lng`
 
 ### Remaining nice-to-haves
-- [ ] Deploy to GitHub Pages (so it works on phone without Live Server)
+- [x] Deploy to GitHub Pages ✅
 - [ ] PWA service worker (offline support on London Underground)
 - [ ] Bilingual EN/FR toggle
 - [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Add Airbnb pins to day card maps (plan ready — purple home marker, London + Edinburgh)
+
+---
+
+## Session 4 — 2026-03-22
+
+### What we did
+
+**Map widget:**
+- Increased map height from 220px to 320px for better visibility
+
+**GitHub Pages deployment:**
+- Installed GitHub CLI (`gh`)
+- Created GitHub account (`dimitrilemieux5-spec`)
+- Initialized git repo, created `.gitignore` (excludes `.claude/`)
+- Created public repo `dimitrilemieux5-spec/uk-trip-2026` and pushed code
+- Enabled GitHub Pages on `master` branch
+
+**Live URL:** https://dimitrilemieux5-spec.github.io/uk-trip-2026/
+
+### Remaining nice-to-haves
+- [x] PWA service worker ✅
+- [x] Add Airbnb pins to day card maps ✅
+- [x] Restrict Maps API key to GitHub Pages domain ✅
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+
+---
+
+## Session 5 — 2026-03-22
+
+### What we built
+
+**Airbnb pins on day card maps:**
+- Purple circle marker (⌂) on every day card map
+- London pin: 51.50673285748828, -0.2280735424 (9A Stanlake Villas, Shepherd's Bush)
+- Edinburgh pin: 55.939544, -3.2163927 (6 McNeil St, EH11 1JN)
+- Clicking pin opens Google Maps to the Airbnb address
+- Pin always included in map bounds
+
+**PWA / offline support:**
+- Created `sw.js` service worker — caches app shell on install, caches Google Sheets CSV data on first load (network-first with cache fallback)
+- Created `manifest.json` — app name, theme color, standalone display
+- Registered service worker in `index.html`
+- App now works offline using last-cached Sheet data
+- Can be added to phone home screen via browser Share menu
+
+**Maps API key restricted** to `dimitrilemieux5-spec.github.io/*`, `localhost:5500/*`, `127.0.0.1:5500/*`
+
+### Remaining nice-to-haves
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Add PWA icons (192×192 and 512×512) for proper "Add to Home Screen" prompt on all browsers
