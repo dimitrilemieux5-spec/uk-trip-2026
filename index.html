@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UK Trip 2026</title>
+  <style>
+    :root {
+      --london: #1a237e;
+      --london-light: #e8eaf6;
+      --edinburgh: #1b5e20;
+      --edinburgh-light: #e8f5e9;
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --text: #1c1c1e;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --radius: 14px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: var(--london);
+      color: white;
+      padding: 16px 16px 14px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.02em; }
+    header p  { font-size: 0.78rem; opacity: 0.72; margin-top: 2px; }
+
+    /* ── Tab bar ─────────────────────────────────────────── */
+    #tabs {
+      display: flex;
+      background: var(--london);
+      position: sticky;
+      top: 56px;
+      z-index: 19;
+      border-top: 1px solid rgba(255,255,255,0.15);
+    }
+
+    #tabs button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.65);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 10px 4px 9px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      letter-spacing: 0.03em;
+    }
+
+    #tabs button.active {
+      color: white;
+      border-bottom-color: white;
+    }
+
+    #tabs button:hover:not(.active) {
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* ── App container ───────────────────────────────────── */
+    #app {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 16px 12px 40px;
+    }
+
+    section[id^="view-"] { display: none; }
+    section[id^="view-"].active { display: block; }
+
+    /* ── Loading / Error ─────────────────────────────────── */
+    .loading {
+      text-align: center;
+      padding: 56px 16px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--london);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error {
+      background: #fff3f3;
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius);
+      padding: 16px;
+      color: #b91c1c;
+      text-align: center;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* ── Day card ────────────────────────────────────────── */
+    .day-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .day-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .day-header-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .day-number {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .city-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .city-badge.london    { background: var(--london-light);    color: var(--london); }
+    .city-badge.edinburgh { background: var(--edinburgh-light); color: var(--edinburgh); }
+
+    .day-date  { font-size: 1rem; font-weight: 700; }
+    .day-theme { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; font-style: italic; }
+
+    /* ── Map container ───────────────────────────────────── */
+    .map-container {
+      height: 320px;
+      border-bottom: 1px solid var(--border);
+      background: #e8eaf6;
+    }
+
+    /* ── Stop list ───────────────────────────────────────── */
+    .stop-list { list-style: none; }
+
+    .stop-item { border-bottom: 1px solid var(--border); }
+    .stop-item:last-child { border-bottom: none; }
+
+    .stop-directions {
+      display: block;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--london);
+      padding: 5px 0;
+      text-decoration: none;
+    }
+    .stop-directions:hover { opacity: 0.7; }
+
+    .stop-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+      cursor: default;
+    }
+
+    .stop-row.has-note { cursor: pointer; }
+    .stop-row.has-note:hover { background: #f9fafb; }
+
+    .stop-order {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      min-width: 16px;
+      flex-shrink: 0;
+    }
+
+    .stop-name {
+      font-size: 0.88rem;
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+      line-height: 1.3;
+    }
+
+    .stop-time {
+      font-size: 0.72rem;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      margin-right: 4px;
+    }
+
+    .stop-tags {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .chevron {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+      margin-left: 2px;
+    }
+
+    .chevron.open { transform: rotate(180deg); }
+
+    .stop-note {
+      display: none;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      padding: 0 16px 10px 40px;
+    }
+
+    .stop-note.open { display: block; }
+
+    /* ── Category pills ──────────────────────────────────── */
+    .cat-pill {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: capitalize;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .cat-food       { background: #fef3c7; color: #92400e; }
+    .cat-transport  { background: #dbeafe; color: #1e40af; }
+    .cat-landmark   { background: #ede9fe; color: #5b21b6; }
+    .cat-museum     { background: #fce7f3; color: #9d174d; }
+    .cat-shopping   { background: #d1fae5; color: #065f46; }
+    .cat-music      { background: #ffedd5; color: #9a3412; }
+    .cat-other      { background: #f3f4f6; color: #374151; }
+
+    /* ── Cost badges ─────────────────────────────────────── */
+    .cost-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+
+    .cost-free { background: #dcfce7; color: #166534; }
+    .cost-1    { background: #ecfccb; color: #3f6212; }
+    .cost-2    { background: #fef9c3; color: #713f12; }
+    .cost-3    { background: #fee2e2; color: #991b1b; }
+
+    /* ── Checklist tab ───────────────────────────────────── */
+    .checklist-group {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .checklist-group-header {
+      padding: 12px 16px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checklist-item:last-child { border-bottom: none; }
+
+    .status-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .status-done    { background: #dcfce7; color: #166534; }
+    .status-urgent  { background: #fee2e2; color: #991b1b; }
+    .status-pending { background: #f3f4f6; color: #6b7280; }
+
+    .checklist-text { flex: 1; }
+    .checklist-text strong { font-size: 0.88rem; font-weight: 500; line-height: 1.3; display: block; }
+    .checklist-text small  { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; display: block; line-height: 1.4; }
+
+    /* ── Budget tab ──────────────────────────────────────── */
+    .budget-summary {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .budget-summary > div {
+      flex: 1;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 11px 10px;
+      text-align: center;
+    }
+
+    .bsum-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .bsum-value            { font-size: 1rem; font-weight: 700; }
+    .bsum-value.bsum-spent { color: #b45309; }
+    .bsum-value.bsum-left  { color: #166534; }
+    .bsum-value.bsum-over  { color: #991b1b; }
+
+    .budget-tracker-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+      padding: 12px 16px;
+    }
+
+    .btc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 7px;
+    }
+
+    .btc-name   { font-size: 0.88rem; font-weight: 600; }
+    .btc-budget { font-size: 0.72rem; color: var(--text-muted); }
+
+    .btc-bar-wrap {
+      background: var(--border);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+
+    .btc-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+
+    .bar-green  { background: #16a34a; }
+    .bar-amber  { background: #d97706; }
+    .bar-orange { background: #ea580c; }
+    .bar-red    { background: #dc2626; }
+
+    .btc-amounts        { font-size: 0.78rem; color: var(--text-muted); }
+    .btc-amounts strong { color: var(--text); }
+
+    /* Expense list */
+    .expense-list-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
+    .expense-list-header {
+      padding: 10px 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .expense-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .expense-row:last-child { border-bottom: none; }
+
+    .expense-info  { flex: 1; font-size: 0.82rem; line-height: 1.5; }
+    .expense-date  { color: var(--text-muted); margin-right: 5px; }
+    .expense-cat   { font-weight: 600; margin-right: 5px; }
+    .expense-cad   { color: var(--text-muted); font-size: 0.75rem; }
+    .expense-note  { display: block; color: var(--text-muted); font-size: 0.78rem; }
+
+    .expense-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+    .expense-delete, .expense-edit {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .expense-delete:hover { color: #dc2626; }
+    .expense-edit:hover { color: var(--london); }
+
+    /* Currency toggle */
+    .exp-currency-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .cur-btn {
+      flex: 1;
+      padding: 7px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cur-btn.active {
+      border-color: var(--london);
+      background: var(--london);
+      color: #fff;
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--london);
+      color: white;
+      font-size: 1.6rem;
+      line-height: 1;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      transition: transform 0.1s;
+    }
+
+    .fab:active { transform: scale(0.93); }
+
+    /* Expense modal */
+    .expense-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .expense-modal.open { display: flex; }
+
+    .expense-modal-card {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 36px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    }
+
+    .expense-modal-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .expense-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+
+    .expense-label input,
+    .expense-label select {
+      display: block;
+      width: 100%;
+      margin-top: 5px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .expense-label input:focus,
+    .expense-label select:focus { border-color: var(--london); }
+
+    .exp-cad-preview {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      min-height: 1.2em;
+    }
+
+    .expense-modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+    .exp-btn-cancel, .exp-btn-save {
+      flex: 1;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .exp-btn-cancel { background: var(--border); color: var(--text); }
+    .exp-btn-save   { background: var(--london); color: white; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>UK Trip 2026 ✈️</h1>
+  <p>London &amp; Edinburgh · July 4–20</p>
+</header>
+
+<nav id="tabs">
+  <button data-tab="itinerary" class="active">Itinerary</button>
+  <button data-tab="checklist">Checklist</button>
+  <button data-tab="budget">Budget</button>
+</nav>
+
+<div id="app">
+  <div class="loading">
+    <div class="spinner"></div>
+    Loading…
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────
+  // Paste your Google Maps JavaScript API key below.
+  // Get one at: https://console.cloud.google.com → APIs → Maps JavaScript API
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyB8O67FAh1PnxrkYZIKQk4qsgGnFWJKn84';
+
+  const ITINERARY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=0&single=true&output=csv';
+  const CHECKLIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=195264691&single=true&output=csv';
+  const BUDGET_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=142940218&single=true&output=csv';
+  const GBP_TO_CAD = 1.72; // update before trip if needed
+
+  // ── CSV PARSER ──────────────────────────────────────────────────
+  function parseCSV(text) {
+    const lines = [];
+    let cur = '', inQuote = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (inQuote && text[i + 1] === '"') { cur += '"'; i++; }
+        else inQuote = !inQuote;
+      } else if (ch === '\n' && !inQuote) {
+        lines.push(cur); cur = '';
+      } else { cur += ch; }
+    }
+    if (cur.trim()) lines.push(cur);
+    if (!lines.length) return [];
+
+    const splitRow = row => {
+      const cols = []; let field = '', q = false;
+      for (let i = 0; i < row.length; i++) {
+        const c = row[i];
+        if (c === '"') {
+          if (q && row[i + 1] === '"') { field += '"'; i++; }
+          else q = !q;
+        } else if (c === ',' && !q) { cols.push(field.trim()); field = ''; }
+        else { field += c; }
+      }
+      cols.push(field.trim());
+      return cols;
+    };
+
+    const headers = splitRow(lines[0]);
+    return lines.slice(1).filter(l => l.trim()).map(l => {
+      const vals = splitRow(l);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h.trim()] = vals[i] ?? ''; });
+      return obj;
+    });
+  }
+
+  // ── ITINERARY HELPERS ───────────────────────────────────────────
+  function groupByDay(rows) {
+    const map = new Map();
+    for (const row of rows) {
+      const key = row.date; if (!key) continue;
+      if (!map.has(key)) map.set(key, {
+        date: row.date, day_number: row.day_number,
+        city: row.city, day_theme: row.day_theme, stops: []
+      });
+      if (row.stop_name) map.get(key).stops.push({
+        order:    row.stop_order,
+        name:     row.stop_name,
+        start:    row.stop_start    || '',
+        end:      row.stop_end      || '',
+        category: (row.stop_category || '').toLowerCase(),
+        cost:     (row.stop_cost     || '').toLowerCase(),
+        note:     row.stop_note_en   || '',
+        maps:     row.maps_url       || '',
+        lat:      row.lat            || '',
+        lng:      row.lng            || '',
+      });
+    }
+    return map;
+  }
+
+  function formatDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  function costBadge(cost) {
+    const map = { free: ['FREE','cost-free'], '$': ['$','cost-1'], '$$': ['$$','cost-2'], '$$$': ['$$$','cost-3'] };
+    const [label, cls] = map[cost] || ['FREE','cost-free'];
+    const span = document.createElement('span');
+    span.className = 'cost-badge ' + cls;
+    span.textContent = label;
+    return span;
+  }
+
+  function catPill(cat) {
+    const known = ['food','transport','landmark','museum','shopping','music'];
+    const span = document.createElement('span');
+    span.className = 'cat-pill ' + (known.includes(cat) ? 'cat-' + cat : 'cat-other');
+    span.textContent = cat || 'other';
+    return span;
+  }
+
+  // ── GOOGLE MAPS LOADER ──────────────────────────────────────────
+  let mapsReady = false;
+  let mapsCallbacks = [];
+
+  function loadMapsAPI() {
+    if (GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY_HERE') return; // skip if not configured
+    window.__mapsLoaded = () => { mapsReady = true; mapsCallbacks.forEach(fn => fn()); mapsCallbacks = []; };
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=__mapsLoaded`;
+    s.async = true; s.defer = true;
+    document.head.appendChild(s);
+  }
+
+  function whenMapsReady(fn) {
+    if (mapsReady) fn();
+    else mapsCallbacks.push(fn);
+  }
+
+  // ── DAY CARD RENDERER ───────────────────────────────────────────
+  function renderDayCard(day) {
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    const cityKey = day.city.toLowerCase().includes('edinburgh') ? 'edinburgh' : 'london';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'day-header';
+    const top = document.createElement('div');
+    top.className = 'day-header-top';
+    const num = document.createElement('span');
+    num.className = 'day-number';
+    num.textContent = day.day_number;
+    const badge = document.createElement('span');
+    badge.className = 'city-badge ' + cityKey;
+    badge.textContent = day.city;
+    top.append(num, badge);
+    const dateEl = document.createElement('div');
+    dateEl.className = 'day-date';
+    dateEl.textContent = formatDate(day.date);
+    const theme = document.createElement('div');
+    theme.className = 'day-theme';
+    theme.textContent = day.day_theme;
+    hdr.append(top, dateEl, theme);
+    card.appendChild(hdr);
+
+    // Map
+    const stopsWithCoords = day.stops.filter(s => s.lat && s.lng);
+    if (GOOGLE_MAPS_API_KEY !== 'YOUR_API_KEY_HERE' && stopsWithCoords.length > 0) {
+      const mapDiv = document.createElement('div');
+      mapDiv.className = 'map-container';
+      card.appendChild(mapDiv);
+      whenMapsReady(() => {
+        const map = new google.maps.Map(mapDiv, {
+          mapTypeControl: false, streetViewControl: false,
+          fullscreenControl: false, zoomControl: true,
+        });
+        const bounds = new google.maps.LatLngBounds();
+        stopsWithCoords.forEach(stop => {
+          const pos = { lat: parseFloat(stop.lat), lng: parseFloat(stop.lng) };
+          const marker = new google.maps.Marker({ position: pos, map, label: String(stop.order), title: stop.name });
+          marker.addListener('click', () => {
+            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name + ', ' + day.city + ', UK')}`;
+            window.open(url, '_blank');
+          });
+          bounds.extend(pos);
+        });
+        map.fitBounds(bounds);
+      });
+    }
+
+    // Stop list
+    const ul = document.createElement('ul');
+    ul.className = 'stop-list';
+    day.stops.forEach((stop, idx) => {
+      const li = document.createElement('li');
+      li.className = 'stop-item';
+
+      const row = document.createElement('div');
+      row.className = 'stop-row' + (stop.note ? ' has-note' : '');
+
+      const ord = document.createElement('span');
+      ord.className = 'stop-order';
+      ord.textContent = stop.order;
+
+      const name = document.createElement('span');
+      name.className = 'stop-name';
+      name.textContent = stop.name;
+
+      const tags = document.createElement('div');
+      tags.className = 'stop-tags';
+      if (stop.category) tags.appendChild(catPill(stop.category));
+      if (stop.cost)     tags.appendChild(costBadge(stop.cost));
+
+      if (stop.start || stop.end) {
+        const timeEl = document.createElement('span');
+        timeEl.className = 'stop-time';
+        timeEl.textContent = stop.start && stop.end ? `${stop.start}–${stop.end}` : (stop.start || stop.end);
+        row.append(ord, timeEl, name, tags);
+      } else {
+        row.append(ord, name, tags);
+      }
+
+      if (stop.note) {
+        const chev = document.createElement('span');
+        chev.className = 'chevron';
+        chev.textContent = '▾';
+        row.appendChild(chev);
+
+        const noteEl = document.createElement('div');
+        noteEl.className = 'stop-note';
+        noteEl.textContent = stop.note;
+
+        row.addEventListener('click', () => {
+          const open = noteEl.classList.toggle('open');
+          chev.classList.toggle('open', open);
+        });
+        li.append(row, noteEl);
+      } else {
+        li.appendChild(row);
+      }
+
+      ul.appendChild(li);
+
+      const nextStop = day.stops[idx + 1];
+      if (nextStop) {
+        const dirLink = document.createElement('a');
+        dirLink.className = 'stop-directions';
+        const origin = encodeURIComponent(stop.name + ', ' + day.city + ', UK');
+        const dest   = encodeURIComponent(nextStop.name + ', ' + day.city + ', UK');
+        dirLink.href = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
+        dirLink.target = '_blank';
+        dirLink.rel = 'noopener';
+        dirLink.textContent = '→ directions';
+        ul.appendChild(dirLink);
+      }
+    });
+    card.appendChild(ul);
+    return card;
+  }
+
+  // ── CHECKLIST RENDERER ──────────────────────────────────────────
+  function renderChecklist(rows) {
+    const groups = new Map();
+    for (const row of rows) {
+      const cat = row.category_en || 'General';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat).push(row);
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const [cat, items] of groups) {
+      const card = document.createElement('div');
+      card.className = 'checklist-group';
+
+      const gh = document.createElement('div');
+      gh.className = 'checklist-group-header';
+      gh.textContent = cat;
+      card.appendChild(gh);
+
+      for (const item of items) {
+        const div = document.createElement('div');
+        div.className = 'checklist-item';
+
+        const status = (item.status || 'pending').toLowerCase();
+        const sb = document.createElement('span');
+        sb.className = 'status-badge status-' + (status === 'done' ? 'done' : status === 'urgent' ? 'urgent' : 'pending');
+        sb.textContent = status;
+
+        const txt = document.createElement('div');
+        txt.className = 'checklist-text';
+        const strong = document.createElement('strong');
+        strong.textContent = item.item_en || '';
+        txt.appendChild(strong);
+        if (item.note_en) {
+          const small = document.createElement('small');
+          small.textContent = item.note_en;
+          txt.appendChild(small);
+        }
+
+        div.append(sb, txt);
+        card.appendChild(div);
+      }
+      frag.appendChild(card);
+    }
+    return frag;
+  }
+
+  // ── EXPENSE STORAGE HELPERS ─────────────────────────────────────
+  let budgetCategories = [];
+
+  function getExpenses() {
+    try { return JSON.parse(localStorage.getItem('uk_trip_expenses') || '[]'); }
+    catch { return []; }
+  }
+
+  function saveExpenseToStorage(expense) {
+    const expenses = getExpenses();
+    expenses.push(expense);
+    localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+  }
+
+  function deleteExpenseFromStorage(id) {
+    const expenses = getExpenses().filter(e => e.id !== id);
+    localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+  }
+
+  function updateExpenseInStorage(expense) {
+    const expenses = getExpenses().map(e => e.id === expense.id ? expense : e);
+    localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+  }
+
+  // ── EXPENSE MODAL ────────────────────────────────────────────────
+  function openExpenseModal(expense = null) {
+    const isEdit = expense !== null;
+    const existing = document.getElementById('expense-modal');
+    if (existing) existing.remove();
+
+    const initCurrency = expense?.currency || 'GBP';
+    const initAmount   = expense ? (initCurrency === 'CAD' ? expense.amount_cad : expense.amount_gbp) : '';
+    const initDate     = expense ? expense.date : new Date().toISOString().slice(0, 10);
+
+    const modal = document.createElement('div');
+    modal.id = 'expense-modal';
+    modal.className = 'expense-modal open';
+    modal.innerHTML = `
+      <div class="expense-modal-card">
+        <h2 class="expense-modal-title">${isEdit ? 'Edit Expense' : 'Add Expense'}</h2>
+        <div class="exp-currency-toggle">
+          <button type="button" id="exp-cur-gbp" class="cur-btn${initCurrency === 'GBP' ? ' active' : ''}">£ GBP</button>
+          <button type="button" id="exp-cur-cad" class="cur-btn${initCurrency === 'CAD' ? ' active' : ''}">$ CAD</button>
+        </div>
+        <label class="expense-label"><span id="exp-amount-label">Amount (${initCurrency})</span>
+          <input type="number" id="exp-amount" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="${initAmount}" />
+          <span id="exp-cad-preview" class="exp-cad-preview"></span>
+        </label>
+        <label class="expense-label">Category
+          <select id="exp-cat">
+            ${budgetCategories.map(c => `<option value="${c.category_en}"${expense?.category === c.category_en ? ' selected' : ''}>${c.category_en}</option>`).join('')}
+          </select>
+        </label>
+        <label class="expense-label">Note (optional)
+          <input type="text" id="exp-note" placeholder="e.g. Lunch at Borough Market" value="${expense?.note || ''}" />
+        </label>
+        <label class="expense-label">Date
+          <input type="date" id="exp-date" value="${initDate}" />
+        </label>
+        <div class="expense-modal-actions">
+          <button id="exp-cancel" class="exp-btn-cancel">Cancel</button>
+          <button id="exp-save" class="exp-btn-save">${isEdit ? 'Update' : 'Save'}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    let currency = initCurrency;
+
+    function updatePreview() {
+      const amount = parseFloat(document.getElementById('exp-amount').value) || 0;
+      const preview = document.getElementById('exp-cad-preview');
+      if (amount <= 0) { preview.textContent = ''; return; }
+      preview.textContent = currency === 'GBP'
+        ? `≈ $${(amount * GBP_TO_CAD).toFixed(2)} CAD`
+        : `≈ £${(amount / GBP_TO_CAD).toFixed(2)} GBP`;
+    }
+
+    document.getElementById('exp-amount').addEventListener('input', updatePreview);
+    if (isEdit) updatePreview();
+
+    document.getElementById('exp-cur-gbp').addEventListener('click', () => {
+      currency = 'GBP';
+      document.getElementById('exp-cur-gbp').classList.add('active');
+      document.getElementById('exp-cur-cad').classList.remove('active');
+      document.getElementById('exp-amount-label').textContent = 'Amount (GBP)';
+      updatePreview();
+    });
+
+    document.getElementById('exp-cur-cad').addEventListener('click', () => {
+      currency = 'CAD';
+      document.getElementById('exp-cur-cad').classList.add('active');
+      document.getElementById('exp-cur-gbp').classList.remove('active');
+      document.getElementById('exp-amount-label').textContent = 'Amount (CAD)';
+      updatePreview();
+    });
+
+    document.getElementById('exp-cancel').addEventListener('click', closeExpenseModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeExpenseModal(); });
+
+    document.getElementById('exp-save').addEventListener('click', () => {
+      const amount = parseFloat(document.getElementById('exp-amount').value);
+      if (!amount || amount <= 0) { document.getElementById('exp-amount').focus(); return; }
+
+      const amount_gbp = currency === 'GBP' ? amount : parseFloat((amount / GBP_TO_CAD).toFixed(2));
+      const amount_cad = currency === 'CAD' ? amount : parseFloat((amount * GBP_TO_CAD).toFixed(2));
+
+      const entry = {
+        id: isEdit ? expense.id : Date.now(),
+        amount_gbp,
+        amount_cad,
+        currency,
+        category: document.getElementById('exp-cat').value,
+        note: document.getElementById('exp-note').value.trim(),
+        date: document.getElementById('exp-date').value,
+      };
+
+      if (isEdit) updateExpenseInStorage(entry);
+      else saveExpenseToStorage(entry);
+
+      closeExpenseModal();
+      renderBudget(budgetCategories);
+    });
+
+    document.getElementById('exp-amount').focus();
+  }
+
+  function closeExpenseModal() {
+    const modal = document.getElementById('expense-modal');
+    if (modal) modal.remove();
+  }
+
+  // ── BUDGET RENDERER ─────────────────────────────────────────────
+  function renderBudget(rows) {
+    budgetCategories = rows.filter(r => r.category_en);
+    const section = document.getElementById('view-budget');
+    section.innerHTML = '';
+
+    const expenses = getExpenses();
+    const totalBudget = budgetCategories.reduce((s, r) => s + (parseFloat(r.budget_cad) || 0), 0);
+    const totalSpent  = expenses.reduce((s, e) => s + (e.amount_cad || 0), 0);
+    const totalLeft   = totalBudget - totalSpent;
+
+    // Summary bar
+    const summary = document.createElement('div');
+    summary.className = 'budget-summary';
+    summary.innerHTML = `
+      <div><div class="bsum-label">Budgeted</div><div class="bsum-value">$${totalBudget.toLocaleString('en-CA')}</div></div>
+      <div><div class="bsum-label">Spent</div><div class="bsum-value bsum-spent">$${totalSpent.toFixed(0)}</div></div>
+      <div><div class="bsum-label">Remaining</div><div class="bsum-value ${totalLeft < 0 ? 'bsum-over' : 'bsum-left'}">$${Math.abs(totalLeft).toFixed(0)}</div></div>`;
+    section.appendChild(summary);
+
+    // Per-category cards
+    const spentByCategory = {};
+    for (const e of expenses) spentByCategory[e.category] = (spentByCategory[e.category] || 0) + (e.amount_cad || 0);
+
+    for (const row of budgetCategories) {
+      const budget    = parseFloat(row.budget_cad) || 0;
+      const spent     = spentByCategory[row.category_en] || 0;
+      const remaining = budget - spent;
+      const pct       = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+      const barCls    = pct < 60 ? 'bar-green' : pct < 80 ? 'bar-amber' : pct < 100 ? 'bar-orange' : 'bar-red';
+
+      const card = document.createElement('div');
+      card.className = 'budget-tracker-card';
+
+      if (budget > 0) {
+        card.innerHTML = `
+          <div class="btc-header">
+            <span class="btc-name">${row.category_en}</span>
+            <span class="btc-budget">$${budget.toLocaleString('en-CA')} CAD</span>
+          </div>
+          <div class="btc-bar-wrap"><div class="btc-bar ${barCls}" style="width:${pct}%"></div></div>
+          <div class="btc-amounts">$${spent.toFixed(2)} spent · <strong>$${remaining.toFixed(2)} left</strong></div>`;
+      } else {
+        card.innerHTML = `
+          <div class="btc-header"><span class="btc-name">${row.category_en}</span></div>
+          <div class="btc-amounts">${spent > 0 ? `$${spent.toFixed(2)} spent (unbudgeted)` : '<span style="color:var(--text-muted)">No budget set</span>'}</div>`;
+      }
+      section.appendChild(card);
+    }
+
+    // Recent expenses list
+    if (expenses.length > 0) {
+      const listCard = document.createElement('div');
+      listCard.className = 'expense-list-card';
+      const lh = document.createElement('div');
+      lh.className = 'expense-list-header';
+      lh.textContent = 'Recent Expenses';
+      listCard.appendChild(lh);
+
+      [...expenses].reverse().forEach(e => {
+        const d = new Date(e.date + 'T00:00:00');
+        const dateStr = d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+        const isCad = e.currency === 'CAD';
+        const mainAmt = isCad ? `$${e.amount_cad.toFixed(2)} CAD` : `£${e.amount_gbp.toFixed(2)}`;
+        const subAmt  = isCad ? `(~£${e.amount_gbp.toFixed(2)})` : `(~$${e.amount_cad.toFixed(2)} CAD)`;
+        const row = document.createElement('div');
+        row.className = 'expense-row';
+        row.innerHTML = `
+          <div class="expense-info">
+            <span class="expense-date">${dateStr}</span>
+            <span class="expense-cat">${e.category}</span>
+            <span class="expense-amount">${mainAmt} <span class="expense-cad">${subAmt}</span></span>
+            ${e.note ? `<span class="expense-note">${e.note}</span>` : ''}
+          </div>
+          <div class="expense-actions">
+            <button class="expense-edit" data-id="${e.id}" aria-label="Edit">✏</button>
+            <button class="expense-delete" data-id="${e.id}" aria-label="Delete">🗑</button>
+          </div>`;
+        listCard.appendChild(row);
+      });
+
+      listCard.addEventListener('click', ev => {
+        const delBtn = ev.target.closest('.expense-delete');
+        if (delBtn) {
+          deleteExpenseFromStorage(Number(delBtn.dataset.id));
+          renderBudget(budgetCategories);
+          return;
+        }
+        const editBtn = ev.target.closest('.expense-edit');
+        if (editBtn) {
+          const exp = getExpenses().find(e => e.id === Number(editBtn.dataset.id));
+          if (exp) openExpenseModal(exp);
+        }
+      });
+
+      section.appendChild(listCard);
+    }
+  }
+
+  // ── TAB SWITCHING ───────────────────────────────────────────────
+  document.getElementById('tabs').addEventListener('click', e => {
+    const tab = e.target.dataset.tab;
+    if (!tab) return;
+    document.querySelectorAll('section[id^="view-"]').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + tab).classList.add('active');
+    e.target.classList.add('active');
+    const fab = document.getElementById('fab-add-expense');
+    if (fab) fab.style.display = tab === 'budget' ? 'flex' : 'none';
+  });
+
+  // ── MAIN ────────────────────────────────────────────────────────
+  async function init() {
+    const app = document.getElementById('app');
+    loadMapsAPI();
+
+    try {
+      const [itinRes, checkRes, budgetRes] = await Promise.all([
+        fetch(ITINERARY_URL), fetch(CHECKLIST_URL), fetch(BUDGET_URL)
+      ]);
+
+      if (!itinRes.ok)   throw new Error(`Itinerary fetch failed: HTTP ${itinRes.status}`);
+      if (!checkRes.ok)  throw new Error(`Checklist fetch failed: HTTP ${checkRes.status}`);
+      if (!budgetRes.ok) throw new Error(`Budget fetch failed: HTTP ${budgetRes.status}`);
+
+      const [itinText, checkText, budgetText] = await Promise.all([
+        itinRes.text(), checkRes.text(), budgetRes.text()
+      ]);
+
+      const itinRows   = parseCSV(itinText);
+      const checkRows  = parseCSV(checkText);
+      const budgetRows = parseCSV(budgetText);
+
+      // Build DOM
+      app.innerHTML = '';
+
+      // — Itinerary section
+      const secItin = document.createElement('section');
+      secItin.id = 'view-itinerary';
+      secItin.className = 'active';
+      const dayMap = groupByDay(itinRows);
+      for (const day of dayMap.values()) secItin.appendChild(renderDayCard(day));
+
+      // — Checklist section
+      const secCheck = document.createElement('section');
+      secCheck.id = 'view-checklist';
+      secCheck.appendChild(renderChecklist(checkRows));
+
+      // — Budget section
+      const secBudget = document.createElement('section');
+      secBudget.id = 'view-budget';
+      app.append(secItin, secCheck, secBudget);
+      renderBudget(budgetRows);
+
+      // FAB for budget tab
+      const fab = document.createElement('button');
+      fab.id = 'fab-add-expense';
+      fab.className = 'fab';
+      fab.textContent = '+';
+      fab.setAttribute('aria-label', 'Add expense');
+      fab.addEventListener('click', () => openExpenseModal());
+      fab.style.display = 'none';
+      document.body.appendChild(fab);
+
+      // Show maps API notice if key not set
+      if (GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY_HERE') {
+        const notice = document.createElement('p');
+        notice.style.cssText = 'text-align:center;color:#9ca3af;font-size:0.75rem;margin-top:4px;';
+        notice.textContent = 'Maps hidden — add your Google Maps API key and lat/lng columns to see them.';
+        secItin.prepend(notice);
+      }
+
+    } catch (err) {
+      app.innerHTML = `<div class="error">
+        <strong>Could not load data.</strong><br/>${err.message}<br/><br/>
+        <small>Try opening with VS Code Live Server instead of file://</small>
+      </div>`;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
