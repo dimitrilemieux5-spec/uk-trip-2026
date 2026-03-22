@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uk-trip-v2';
+const CACHE_NAME = 'uk-trip-v3';
 const STATIC_ASSETS = ['/uk-trip-2026/', '/uk-trip-2026/index.html'];
 
 self.addEventListener('install', event => {
@@ -20,21 +20,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Google Sheets CSV: network first, cache fallback (offline uses last fetched data)
-  if (url.hostname === 'docs.google.com') {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // App shell: cache first
+  // App shell only — Google Sheets and Maps requests go through normally
   if (url.pathname.startsWith('/uk-trip-2026/')) {
     event.respondWith(
       caches.match(event.request).then(cached => cached || fetch(event.request))
