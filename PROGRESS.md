@@ -174,6 +174,13 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - Default status derived from the Sheet's existing `status` column (`done` → Complete, everything else → To Do)
 - No Sheet changes required
 
+**Budget tab — per-person expense tracking:**
+- **Dimitri / Charlotte toggle** at the top of the Budget tab — each person sees their own expenses and budget progress independently
+- Each person tracks against the full $7,500 per-person budget breakdown from the Sheet
+- **Who dropdown** added to Add/Edit Expense modal (Dimitri / Charlotte, defaults to Dimitri)
+- Small **D / C badge** on each expense row in the recent expenses list
+- Old expenses with no `who` tag default to Dimitri
+
 ### Remaining nice-to-haves
 - [ ] Bilingual EN/FR toggle
 - [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)

@@ -500,6 +500,45 @@
       color: #fff;
     }
 
+    /* Budget filter toggle */
+    .budget-filter {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .budget-filter-btn {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .budget-filter-btn.active {
+      background: #1a237e;
+      color: #fff;
+      border-color: #1a237e;
+    }
+
+    /* Who badge in expense list */
+    .expense-who {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+      margin-left: 3px;
+      vertical-align: middle;
+    }
+
+    .who-dimitri   { background: #fff7ed; color: #9a3412; }
+    .who-charlotte { background: #fdf2f8; color: #9d174d; }
+    .who-shared    { background: #f3f4f6; color: #6b7280; }
+
     /* FAB */
     .fab {
       position: fixed;
@@ -1020,6 +1059,7 @@
 
   // ── EXPENSE STORAGE HELPERS ─────────────────────────────────────
   let budgetCategories = [];
+  let budgetFilter = 'dimitri';
 
   function getExpenses() {
     try { return JSON.parse(localStorage.getItem('uk_trip_expenses') || '[]'); }
@@ -1069,6 +1109,12 @@
         <label class="expense-label">Category
           <select id="exp-cat">
             ${budgetCategories.map(c => `<option value="${c.category_en}"${expense?.category === c.category_en ? ' selected' : ''}>${c.category_en}</option>`).join('')}
+          </select>
+        </label>
+        <label class="expense-label">Who
+          <select id="exp-who">
+            <option value="dimitri"${(!expense?.who || expense?.who === 'dimitri' || expense?.who === 'shared') ? ' selected' : ''}>Dimitri</option>
+            <option value="charlotte"${expense?.who === 'charlotte' ? ' selected' : ''}>Charlotte</option>
           </select>
         </label>
         <label class="expense-label">Note (optional)
@@ -1130,6 +1176,7 @@
         amount_cad,
         currency,
         category: document.getElementById('exp-cat').value,
+        who: document.getElementById('exp-who').value,
         note: document.getElementById('exp-note').value.trim(),
         date: document.getElementById('exp-date').value,
       };
@@ -1155,7 +1202,20 @@
     const section = document.getElementById('view-budget');
     section.innerHTML = '';
 
-    const expenses = getExpenses();
+    // Filter toggle
+    const filterBar = document.createElement('div');
+    filterBar.className = 'budget-filter';
+    [['dimitri', 'Dimitri'], ['charlotte', 'Charlotte']].forEach(([val, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'budget-filter-btn' + (budgetFilter === val ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => { budgetFilter = val; renderBudget(budgetCategories); });
+      filterBar.appendChild(btn);
+    });
+    section.appendChild(filterBar);
+
+    const allExpenses = getExpenses();
+    const expenses = allExpenses.filter(e => (e.who || 'dimitri') === budgetFilter);
     const totalBudget = budgetCategories.reduce((s, r) => s + (parseFloat(r.budget_cad) || 0), 0);
     const totalSpent  = expenses.reduce((s, e) => s + (e.amount_cad || 0), 0);
     const totalLeft   = totalBudget - totalSpent;
@@ -1220,6 +1280,7 @@
           <div class="expense-info">
             <span class="expense-date">${dateStr}</span>
             <span class="expense-cat">${e.category}</span>
+            <span class="expense-who who-${e.who || 'dimitri'}">${e.who === 'charlotte' ? 'C' : 'D'}</span>
             <span class="expense-amount">${mainAmt} <span class="expense-cad">${subAmt}</span></span>
             ${e.note ? `<span class="expense-note">${e.note}</span>` : ''}
           </div>
