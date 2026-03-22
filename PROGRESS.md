@@ -191,3 +191,19 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - [ ] Bilingual EN/FR toggle
 - [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
+
+---
+
+## Session 8 — 2026-03-22
+
+### What we fixed
+
+**localStorage persistence (service worker bug):**
+- Data (checklist statuses, budget expenses) was not persisting across app restarts because the service worker was serving a stale cached `index.html` from before those features were added
+- Bumped cache to `uk-trip-v2` to force a fresh install — caused a new iOS Safari error ("Returned response is null") because the empty cache returned `null` on Google Sheets misses
+- Final fix: removed Google Sheets caching from the service worker entirely, bumped to `uk-trip-v3`. App shell still cached offline; Sheet data requires internet. localStorage data (expenses, checklist statuses) always works offline.
+
+### Remaining nice-to-haves
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
