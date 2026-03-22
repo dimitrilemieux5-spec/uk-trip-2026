@@ -717,6 +717,12 @@
     else mapsCallbacks.push(fn);
   }
 
+  // ── AIRBNB LOCATIONS ─────────────────────────────────────────────
+  const AIRBNB = {
+    london:    { lat: 51.5063, lng: -0.2254, label: 'Airbnb London',    address: '9A Stanlake Villas, Shepherd\'s Bush, London' },
+    edinburgh: { lat: 55.9447, lng: -3.2164, label: 'Airbnb Edinburgh', address: '6 McNeil St, Edinburgh EH11 1JN' },
+  };
+
   // ── DAY CARD RENDERER ───────────────────────────────────────────
   function renderDayCard(day) {
     const card = document.createElement('div');
@@ -765,6 +771,29 @@
           });
           bounds.extend(pos);
         });
+        const airbnb = AIRBNB[cityKey];
+        if (airbnb) {
+          const airbnbPos = { lat: airbnb.lat, lng: airbnb.lng };
+          const airbnbMarker = new google.maps.Marker({
+            position: airbnbPos,
+            map,
+            title: airbnb.label,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#7c3aed',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            },
+            label: { text: '⌂', color: '#ffffff', fontSize: '13px' },
+            zIndex: 999,
+          });
+          airbnbMarker.addListener('click', () => {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(airbnb.address)}`, '_blank');
+          });
+          bounds.extend(airbnbPos);
+        }
         map.fitBounds(bounds);
       });
     }
