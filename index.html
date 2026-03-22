@@ -644,6 +644,61 @@
 
     .exp-btn-cancel { background: var(--border); color: var(--text); }
     .exp-btn-save   { background: var(--london); color: white; }
+
+    /* ── Itinerary search ────────────────────────────────── */
+    .itin-search-wrap {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .itin-search-input {
+      width: 100%;
+      padding: 10px 36px 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .itin-search-input:focus { border-color: var(--london); }
+
+    .itin-search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+      display: none;
+    }
+
+    .itin-search-clear.visible { display: block; }
+
+    .itin-no-results {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 40px 0;
+      display: none;
+    }
+
+    .itin-no-results.visible { display: block; }
+
+    mark.search-hl {
+      background: #fef08a;
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
   </style>
 </head>
 <body>
@@ -1351,8 +1406,85 @@
       const secItin = document.createElement('section');
       secItin.id = 'view-itinerary';
       secItin.className = 'active';
+
+      // Search bar
+      const searchWrap = document.createElement('div');
+      searchWrap.className = 'itin-search-wrap';
+      const searchInput = document.createElement('input');
+      searchInput.type = 'search';
+      searchInput.className = 'itin-search-input';
+      searchInput.placeholder = 'Search stops, themes, categories…';
+      searchInput.setAttribute('aria-label', 'Search itinerary');
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'itin-search-clear';
+      clearBtn.textContent = '✕';
+      clearBtn.setAttribute('aria-label', 'Clear search');
+      searchWrap.append(searchInput, clearBtn);
+      const noResults = document.createElement('div');
+      noResults.className = 'itin-no-results';
+      noResults.textContent = 'No stops match your search.';
+      secItin.append(searchWrap, noResults);
+
       const dayMap = groupByDay(itinRows);
-      for (const day of dayMap.values()) secItin.appendChild(renderDayCard(day));
+      const dayCards = [];
+      for (const day of dayMap.values()) {
+        const card = renderDayCard(day);
+        card.dataset.searchText = [
+          day.day_theme,
+          day.city,
+          ...day.stops.map(s => [s.name, s.category, s.note].filter(Boolean).join(' '))
+        ].join(' ').toLowerCase();
+        dayCards.push({ card, day });
+        secItin.appendChild(card);
+      }
+
+      function applySearch(q) {
+        const term = q.trim().toLowerCase();
+        clearBtn.classList.toggle('visible', term.length > 0);
+        let anyVisible = false;
+        for (const { card, day } of dayCards) {
+          if (!term) {
+            card.hidden = false;
+            // Remove any highlights
+            card.querySelectorAll('mark.search-hl').forEach(m => {
+              m.replaceWith(document.createTextNode(m.textContent));
+            });
+            // Restore stop names from data attribute
+            card.querySelectorAll('.stop-name[data-original]').forEach(el => {
+              el.textContent = el.dataset.original;
+              delete el.dataset.original;
+            });
+            anyVisible = true;
+            continue;
+          }
+          const matches = card.dataset.searchText.includes(term);
+          card.hidden = !matches;
+          if (matches) {
+            anyVisible = true;
+            // Highlight matching stop names
+            card.querySelectorAll('.stop-name').forEach(el => {
+              const original = el.dataset.original || el.textContent;
+              el.dataset.original = original;
+              const idx = original.toLowerCase().indexOf(term);
+              if (idx === -1) {
+                el.textContent = original;
+              } else {
+                el.innerHTML = '';
+                el.appendChild(document.createTextNode(original.slice(0, idx)));
+                const mark = document.createElement('mark');
+                mark.className = 'search-hl';
+                mark.textContent = original.slice(idx, idx + term.length);
+                el.appendChild(mark);
+                el.appendChild(document.createTextNode(original.slice(idx + term.length)));
+              }
+            });
+          }
+        }
+        noResults.classList.toggle('visible', !anyVisible);
+      }
+
+      searchInput.addEventListener('input', () => applySearch(searchInput.value));
+      clearBtn.addEventListener('click', () => { searchInput.value = ''; applySearch(''); searchInput.focus(); });
 
       // — Checklist section
       const secCheck = document.createElement('section');
