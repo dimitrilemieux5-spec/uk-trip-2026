@@ -159,3 +159,23 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
 - [ ] Add PWA icons (192×192 and 512×512) for proper "Add to Home Screen" prompt on all browsers
+
+---
+
+## Session 6 — 2026-03-22
+
+### What we built
+
+**Checklist tab — per-person status tracking:**
+- Each checklist item now has two independent status dropdowns: **D** (Dimitri) and **C** (Charlotte)
+- Status options: To Do / In Progress / Complete / Abandoned — colour-coded (grey / blue / green / strikethrough grey)
+- Both statuses save independently to `localStorage` (key: `uk_trip_checklist_state`)
+- Item text strikes through only if **both** statuses are set to Abandoned
+- Default status derived from the Sheet's existing `status` column (`done` → Complete, everything else → To Do)
+- No Sheet changes required
+
+### Remaining nice-to-haves
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Add PWA icons (192×192 and 512×512) for proper "Add to Home Screen" prompt on all browsers
