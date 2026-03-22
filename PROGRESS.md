@@ -207,3 +207,35 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - [ ] Bilingual EN/FR toggle
 - [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
+
+---
+
+## Session 9 — 2026-03-22
+
+### What we built
+
+**Itinerary tab — search + category filter:**
+- Search bar at the top of the Itinerary tab: case-insensitive substring match across stop names, themes, categories, and notes
+- Matching stop names highlighted in yellow (`<mark>`)
+- ✕ clear button appears while typing
+- "No stops match your search." empty state
+- Category filter bar: **All · Food · Transport · Landmark · Museum · Shopping · Music** — filters day cards to only those containing at least one stop of the selected category
+- Search and category filter work together (both apply simultaneously)
+
+**Map tab (new):**
+- New **Map** tab added between Itinerary and Checklist
+- Fetches `places` sheet (gid=226013303) with columns: `city`, `name`, `category`, `maps_url`, `priority`, `note_en`, `note_fr`, `lat`, `lng`
+- Full Google Map with color-coded circle markers by category: food=orange, transport=blue, landmark=green, museum=pink, shopping=purple, music=red, other=gray
+- **City toggle**: London / Edinburgh / All — filters markers and refits map bounds
+- **Search bar**: filters by name, category, note, city
+- **Category filter bar**: same categories as itinerary tab
+- **Color legend** below controls
+- **Scrollable place list** below the map — each row shows colored dot, name, category pill, LDN/EDI badge
+- Tapping a pin or a list row opens Google Maps searching `"Place Name, London, UK"` (or Edinburgh) — identical behavior to the itinerary tab pins
+- Fixed bug: `cityKey` was computed after `cityLabel` used it, so all places defaulted to London search; corrected variable order
+
+### Remaining nice-to-haves
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
