@@ -181,8 +181,13 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - Small **D / C badge** on each expense row in the recent expenses list
 - Old expenses with no `who` tag default to Dimitri
 
+**PWA icons:**
+- Added `icon-192.png` and `icon-512.png` (custom image — a very distinguished British cat)
+- Updated `manifest.json` to reference both icons
+- Added `apple-touch-icon` meta tag to `index.html` for iOS home screen support
+- App now shows a proper icon when added to phone home screen
+
 ### Remaining nice-to-haves
 - [ ] Bilingual EN/FR toggle
 - [ ] Fix bad geocoded coordinates in the itinerary sheet (any lat ~45.5, lng ~-73.5 = Montreal, not UK)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
-- [ ] Add PWA icons (192×192 and 512×512) for proper "Add to Home Screen" prompt on all browsers
