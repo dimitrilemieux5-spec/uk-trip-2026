@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK Trip 2026</title>
+  <link rel="manifest" href="/uk-trip-2026/manifest.json" />
+  <meta name="theme-color" content="#1a237e" />
   <style>
     :root {
       --london: #1a237e;
@@ -1227,6 +1229,12 @@
   }
 
   init();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/uk-trip-2026/sw.js');
+    });
+  }
 </script>
 </body>
 </html>

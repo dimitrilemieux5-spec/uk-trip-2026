@@ -1,0 +1,10 @@
+{
+  "name": "UK Trip 2026",
+  "short_name": "UK Trip",
+  "description": "London & Edinburgh travel companion — July 2026",
+  "start_url": "/uk-trip-2026/",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1a237e",
+  "icons": []
+}
