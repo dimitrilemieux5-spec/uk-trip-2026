@@ -1658,12 +1658,14 @@
           },
         });
 
+        const cityLabel = cityKey === 'edinburgh' ? 'Edinburgh, UK' : 'London, UK';
+        const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ', ' + cityLabel)}`;
         const infoContent = `
           <div style="max-width:220px;font-family:-apple-system,sans-serif;">
             <strong style="font-size:0.9rem;">${p.name}</strong><br/>
             <span style="font-size:0.75rem;color:#6b7280;text-transform:capitalize;">${p.category || 'other'}</span>
             ${p.note_en ? `<p style="font-size:0.8rem;margin:6px 0 4px;">${p.note_en}</p>` : ''}
-            ${p.maps_url ? `<a href="${p.maps_url}" target="_blank" style="font-size:0.8rem;color:#1a237e;font-weight:600;">Open in Maps →</a>` : ''}
+            <a href="${mapsSearchUrl}" target="_blank" style="font-size:0.8rem;color:#1a237e;font-weight:600;">Open in Maps →</a>
           </div>`;
         const infoWindow = new google.maps.InfoWindow({ content: infoContent });
 
