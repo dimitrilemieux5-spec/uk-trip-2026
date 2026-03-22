@@ -1638,8 +1638,6 @@
         center: { lat: 52.5, lng: -1.5 }, zoom: 6,
       });
 
-      let openInfoWindow = null;
-
       // Build markers and list rows
       const entries = validPlaces.map(p => {
         const color = placeColor(p.category);
@@ -1658,21 +1656,12 @@
           },
         });
 
+        const cityKey = (p.city || '').toLowerCase().includes('edinburgh') ? 'edinburgh' : 'london';
         const cityLabel = cityKey === 'edinburgh' ? 'Edinburgh, UK' : 'London, UK';
         const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ', ' + cityLabel)}`;
-        const infoContent = `
-          <div style="max-width:220px;font-family:-apple-system,sans-serif;">
-            <strong style="font-size:0.9rem;">${p.name}</strong><br/>
-            <span style="font-size:0.75rem;color:#6b7280;text-transform:capitalize;">${p.category || 'other'}</span>
-            ${p.note_en ? `<p style="font-size:0.8rem;margin:6px 0 4px;">${p.note_en}</p>` : ''}
-            <a href="${mapsSearchUrl}" target="_blank" style="font-size:0.8rem;color:#1a237e;font-weight:600;">Open in Maps →</a>
-          </div>`;
-        const infoWindow = new google.maps.InfoWindow({ content: infoContent });
 
         marker.addListener('click', () => {
-          if (openInfoWindow) openInfoWindow.close();
-          infoWindow.open(map, marker);
-          openInfoWindow = infoWindow;
+          window.open(mapsSearchUrl, '_blank');
         });
 
         // List row
@@ -1688,18 +1677,12 @@
         catPill.className = `cat-pill cat-${(p.category || 'other').toLowerCase()}`;
         catPill.textContent = p.category || 'other';
         const cityBadge = document.createElement('span');
-        const cityKey = (p.city || '').toLowerCase().includes('edinburgh') ? 'edinburgh' : 'london';
         cityBadge.className = `place-city-badge ${cityKey}`;
         cityBadge.textContent = cityKey === 'edinburgh' ? 'EDI' : 'LDN';
         row.append(dot, name, catPill, cityBadge);
 
         row.addEventListener('click', () => {
-          map.panTo(pos);
-          map.setZoom(15);
-          if (openInfoWindow) openInfoWindow.close();
-          infoWindow.open(map, marker);
-          openInfoWindow = infoWindow;
-          mapContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          window.open(mapsSearchUrl, '_blank');
         });
 
         listWrap.appendChild(row);
