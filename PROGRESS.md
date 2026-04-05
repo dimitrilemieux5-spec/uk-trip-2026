@@ -239,3 +239,21 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
 - [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+
+---
+
+## Session 10 — 2026-04-05
+
+### What we fixed
+
+**Map tab — place list now filters with city/category buttons:**
+- Clicking London/Edinburgh/All or any category pill (Food, Transport, etc.) now correctly hides/shows both map pins AND the place list rows simultaneously
+- Root cause: CSS specificity bug — `.place-row { display: flex }` overrode the browser's built-in `[hidden] { display: none }`, so `row.hidden = true` had no visual effect despite the filter logic being correct
+- Fix: added `.place-row[hidden] { display: none; }` to `index.html`
+- Also bumped service worker cache from `uk-trip-v8` → `uk-trip-v9` to force browsers to fetch the updated `index.html` (old cached version was still being served after the push)
+
+### Remaining nice-to-haves
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
