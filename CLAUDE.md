@@ -128,7 +128,7 @@ Sheet columns: name, category, lat, lng, cost_flag, note, maps_url.
 
 Features: colour-coded pins by category (orange=food, blue=museums, green=parks/landmarks, purple=shopping, red=music, white=other), category filter buttons, city toggle, and a "today's route" mode that shows the current day's stops in order.
 
-Google Maps API: free tier is 10,000 map loads per month — far more than a personal app needs. Requires a Google account with credit card on file, but a $0 hard budget cap in Google Cloud Console guarantees zero charges.
+Google Maps API: free tier is 10,000 map loads per month — far more than a personal app needs. Requires a Google account with credit card on file, but a $0 hard budget cap in Google Cloud Console guarantees zero charges. API key restricted to dimitrilemieux5-spec.github.io/* and localhost:5500/* and 127.0.0.1:5500/*.
 
 To add a place: add a row to the places tab with coordinates. No code changes.
 
@@ -166,8 +166,8 @@ To add an item: add a row to the checklist tab. No code changes.
 | App format | Single HTML file, vanilla JS | Free |
 | Maps | Google Maps JavaScript API | Free tier (10K loads/mo), $0 hard cap |
 | Offline | PWA service worker | Free |
-| Version control | GitHub private repo | Free |
-| Hosting | GitHub Pages | Free |
+| Version control | GitHub public repo (dimitrilemieux5-spec/uk-trip-2026) | Free |
+| Hosting | GitHub Pages — https://dimitrilemieux5-spec.github.io/uk-trip-2026/ | Free |
 | Expense storage | localStorage (on-device) | Free |
 
 **Total ongoing cost: ~$20/month (Claude Pro only). Everything else is permanently free.**
