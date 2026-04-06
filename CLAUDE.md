@@ -162,15 +162,19 @@ To add an item: add a row to the checklist tab. No code changes.
 |---|---|---|
 | Code editor | VS Code | Free |
 | AI assistant | Claude Code (in VS Code terminal) | Included in Claude Pro (~$20/mo) |
-| Data backend | Google Sheets published as CSV | Free — no API key needed |
+| Read-only data backend | Google Sheets published as CSV | Free — no API key needed |
 | App format | Single HTML file, vanilla JS | Free |
-| Maps | Google Maps JavaScript API | Free tier (10K loads/mo), $0 hard cap |
-| Offline | PWA service worker | Free |
-| Version control | GitHub public repo (dimitrilemieux5-spec/uk-trip-2026) | Free |
+| Maps | Google Maps JavaScript API | Free tier (10K loads/mo), $0 hard cap — key restricted to github.io + localhost |
+| Offline / PWA | Service worker + manifest + icons | Free |
+| Version control | GitHub public repo (`dimitrilemieux5-spec/uk-trip-2026`) | Free |
 | Hosting | GitHub Pages — https://dimitrilemieux5-spec.github.io/uk-trip-2026/ | Free |
-| Expense storage | localStorage (on-device) | Free |
+| User data sync | Firebase Realtime Database — **planned next session** | Free (Spark plan) |
+| User data (current) | localStorage (per-device, no sync) | Free |
 
 **Total ongoing cost: ~$20/month (Claude Pro only). Everything else is permanently free.**
+
+### Current app state (as of Session 12)
+The app is fully built and deployed. It has 5 tabs: Itinerary, Map, Checklist, Budget, Day Plans. All UI is complete. The only remaining planned work is replacing localStorage with Firebase for cross-device sync between the two travellers' phones.
 
 ---
 

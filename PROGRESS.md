@@ -356,3 +356,38 @@ The Today tab was renamed to **Day Plans** and significantly expanded so plans c
 - [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
 - [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+
+---
+
+## Next Session — Firebase Sync (planned)
+
+### Goal
+Replace `localStorage` with **Firebase Realtime Database** so Dimitri and Charlotte can both use the app on their phones and see each other's changes (Day Plans, expenses, checklist statuses).
+
+### Why Firebase
+- Free Spark plan: 100 connections, 1 GB storage, 10 GB/month — they'll use <1% of each
+- No server, no credit card, no billing account required
+- Real-time sync (~1 second), with built-in offline persistence for the Underground
+
+### What syncs to Firebase (currently in localStorage)
+| localStorage key | Firebase path |
+|---|---|
+| `uk_trip_today_plans` | `/day_plans` |
+| `uk_trip_expenses` | `/expenses` |
+| `uk_trip_checklist_state` | `/checklist` |
+
+### What stays unchanged
+Google Sheets CSV data (itinerary, places, checklist categories), Map tab, Itinerary tab, all UI/CSS, GitHub Pages hosting.
+
+### User must do BEFORE the session starts
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+2. Create project → **Build → Realtime Database → Create database** (test mode, any region)
+3. **Project Settings → Your apps → Add web app** → copy the `firebaseConfig` object
+4. Have the config object ready to paste at session start
+
+### Implementation outline (full plan saved in Claude's plan file)
+1. Add Firebase compat SDK via CDN `<script>` tags
+2. Initialize Firebase with config + enable offline persistence
+3. Replace all localStorage helpers with Firebase listener-based equivalents
+4. Add async loading state on Budget, Checklist, Day Plans tabs
+5. Bump SW cache `v11` → `v12`
