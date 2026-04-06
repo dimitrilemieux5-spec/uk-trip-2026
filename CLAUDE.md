@@ -168,13 +168,12 @@ To add an item: add a row to the checklist tab. No code changes.
 | Offline / PWA | Service worker + manifest + icons | Free |
 | Version control | GitHub public repo (`dimitrilemieux5-spec/uk-trip-2026`) | Free |
 | Hosting | GitHub Pages — https://dimitrilemieux5-spec.github.io/uk-trip-2026/ | Free |
-| User data sync | Firebase Realtime Database — **planned next session** | Free (Spark plan) |
-| User data (current) | localStorage (per-device, no sync) | Free |
+| User data sync | Firebase Realtime Database (`uk-trip-2026-abfac`) | Free (Spark plan) |
 
 **Total ongoing cost: ~$20/month (Claude Pro only). Everything else is permanently free.**
 
-### Current app state (as of Session 12)
-The app is fully built and deployed. It has 5 tabs: Itinerary, Map, Checklist, Budget, Day Plans. All UI is complete. The only remaining planned work is replacing localStorage with Firebase for cross-device sync between the two travellers' phones.
+### Current app state (as of Session 13)
+The app is fully built and deployed. 5 tabs: Itinerary, Map, Checklist, Budget, Day Plans. Firebase sync is live — both phones share checklist, expenses, and Day Plans in real-time. No major features remaining, only nice-to-haves.
 
 ---
 

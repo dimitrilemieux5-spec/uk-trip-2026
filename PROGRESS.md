@@ -359,6 +359,45 @@ The Today tab was renamed to **Day Plans** and significantly expanded so plans c
 
 ---
 
+## Session 13 — 2026-04-06 (same day as Session 12)
+
+### What we built
+
+**Firebase Realtime Database sync — all user data now shared between phones:**
+
+Replaced all `localStorage` with Firebase Realtime Database (free Spark plan) so Dimitri and Charlotte see each other's changes in real-time (~1 second, no reload needed).
+
+**Firebase setup (user completed manually):**
+- Created Firebase project "UK Trip 2026" (Spark plan — free, no credit card)
+- Created Realtime Database in us-central1, test mode, rules set to permanently open (`".read": true, ".write": true`)
+- Registered web app, copied `firebaseConfig`
+
+**Technical changes:**
+- Added Firebase compat SDK v10.12.0 via CDN (`firebase-app-compat.js` + `firebase-database-compat.js`)
+- Initialized Firebase with project config at top of script
+- `fbCache` object holds in-memory snapshots: `{ checklist: {}, expenses: [], dayPlans: {} }`
+- Three Firebase listeners (`db.ref('checklist/expenses/day_plans').on('value', ...)`) keep cache live and re-render the active tab when the other phone makes a change
+- All read helpers (`getChecklistState`, `getExpenses`, `getTodayPlanForDate`) now read from `fbCache` synchronously
+- All write helpers now call `db.ref(...).set(newValue)` instead of `localStorage.setItem`
+- Service worker bumped `uk-trip-v11` → `uk-trip-v12`
+
+**Firebase paths:**
+| Data | Firebase path |
+|---|---|
+| Checklist statuses | `/checklist` |
+| Budget expenses | `/expenses` |
+| Day Plans | `/day_plans` |
+
+### Remaining nice-to-haves
+- [ ] Add `is_fixed` column to itinerary sheet and mark locked events
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+- [ ] Firebase security (currently open rules — low risk for trip data, revisit post-trip if desired)
+
+---
+
 ## Next Session — Firebase Sync (planned)
 
 ### Goal
