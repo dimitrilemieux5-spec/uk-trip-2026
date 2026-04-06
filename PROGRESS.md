@@ -296,7 +296,61 @@ The core idea: the existing Itinerary tab is a rigid pre-planned schedule, but i
 Add an `is_fixed` column to the itinerary Google Sheet tab. Set `1` for Bath day trip, Harry Potter Studios, any booked shows. Leave blank or `0` for all other stops.
 
 ### Remaining nice-to-haves
-- [ ] Push to GitHub (session changes not yet committed/deployed)
+- [x] Push to GitHub ✅
+- [ ] Add `is_fixed` column to itinerary sheet and mark locked events
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+
+---
+
+## Session 12 — 2026-04-06
+
+### What we built
+
+**Day Plans tab — expanded from the "Today" tab:**
+
+The Today tab was renamed to **Day Plans** and significantly expanded so plans can be built for any trip day, not just today.
+
+**Tab rename:**
+- Tab label: "Today" → "Day Plans" (section element ID `view-today` unchanged — used internally)
+
+**"+ Today" / "+ Other Day" in Map tab:**
+- The single "Add to Today" button on map pin InfoWindows and list row action bars is replaced by two buttons side-by-side:
+  - **+ Today** — instant add to the currently selected Day Plans date (same behaviour as before)
+  - **+ Other Day** — opens a slide-up modal with a date picker (constrained to July 4–20, 2026) plus optional Start and End time fields, then an Add / Cancel button pair
+- Modal date defaults to whichever date is active in Day Plans tab
+
+**Reorder flexible places (↑ ↓ buttons):**
+- Each flexible place row in Day Plans now has ↑ and ↓ arrow buttons on the left
+- First row hides ↑, last row hides ↓
+- Clicking reorders the array in localStorage (`uk_trip_today_plans`) and re-renders; route map marker numbers update automatically to match new order
+
+**Optional start/end times on flexible places:**
+- Each flexible place row has a ✏ button that toggles an inline editor below the row
+- Editor has Start time and End time inputs (`<input type="time">`) pre-filled with existing values, and a Save button
+- `updatePlaceInTodayPlan(dateStr, index, patch)` helper patches the object in localStorage
+- Times display on the row in the same format as fixed events: `09:30–12:00`, or just `09:30` if only start is set
+- Times can also be set at add-time via the "+ Other Day" modal
+
+**New localStorage helpers:**
+- `reorderPlaceInDayPlan(dateStr, fromIndex, toIndex)` — splices array in place
+- `updatePlaceInTodayPlan(dateStr, index, patch)` — Object.assign patch on one item
+
+**localStorage data structure update** (backwards-compatible — old entries without time fields just show no time):
+```js
+{
+  "YYYY-MM-DD": [
+    { name, category, lat, lng, city, mapsUrl, startTime, endTime },
+    ...
+  ]
+}
+```
+
+- Service worker bumped `uk-trip-v10` → `uk-trip-v11`
+
+### Remaining nice-to-haves
 - [ ] Add `is_fixed` column to itinerary sheet and mark locked events
 - [ ] Bilingual EN/FR toggle
 - [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
