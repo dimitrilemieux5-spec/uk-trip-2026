@@ -999,6 +999,152 @@
     }
 
     .place-row-actions a:hover { text-decoration: underline; }
+
+    /* ── Day Plans tab additions ───────────────────────────── */
+    .today-reorder-btns { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+    .today-reorder-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      padding: 1px 5px;
+      line-height: 1.2;
+      font-family: inherit;
+    }
+    .today-reorder-btn:hover:not(:disabled) { background: var(--border); color: var(--text); }
+    .today-reorder-btn:disabled { opacity: 0.2; cursor: default; }
+
+    .today-edit-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+    .today-edit-btn:hover { color: var(--london); }
+
+    .today-place-editor {
+      padding: 8px 16px 10px 16px;
+      background: #f0f4ff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .today-place-editor label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .today-place-editor input[type=time] {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+    }
+    .today-place-editor input[type=time]:focus { border-color: var(--london); }
+    .today-place-save-btn {
+      background: var(--london);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ── Day picker modal ──────────────────────────────────── */
+    .day-picker-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .day-picker-card {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 36px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    }
+    .day-picker-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 18px; }
+    .day-picker-field {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+    .day-picker-field input {
+      display: block;
+      width: 100%;
+      margin-top: 5px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .day-picker-field input:focus { border-color: var(--london); }
+    .day-picker-times { display: flex; gap: 12px; }
+    .day-picker-times .day-picker-field { flex: 1; }
+    .day-picker-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .day-picker-cancel, .day-picker-add {
+      flex: 1;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+    .day-picker-cancel { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+    .day-picker-add { background: var(--london); color: white; }
+
+    /* ── Map tab — two-button add pair ─────────────────────── */
+    .add-btn-pair { display: flex; gap: 6px; flex-wrap: wrap; }
+    .add-to-other-day-btn {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #4a5568;
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .add-to-other-day-btn:active { opacity: 0.75; }
   </style>
 </head>
 <body>
@@ -1013,7 +1159,7 @@
   <button data-tab="places">Map</button>
   <button data-tab="checklist">Checklist</button>
   <button data-tab="budget">Budget</button>
-  <button data-tab="today">Today</button>
+  <button data-tab="today">Day Plans</button>
 </nav>
 
 <div id="app">
@@ -1470,6 +1616,103 @@
     localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
   }
 
+  function reorderPlaceInDayPlan(dateStr, fromIndex, toIndex) {
+    const plans = getTodayPlans();
+    const arr = plans[dateStr] || [];
+    const [item] = arr.splice(fromIndex, 1);
+    arr.splice(toIndex, 0, item);
+    plans[dateStr] = arr;
+    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+  }
+
+  function updatePlaceInTodayPlan(dateStr, index, patch) {
+    const plans = getTodayPlans();
+    if (plans[dateStr]?.[index]) Object.assign(plans[dateStr][index], patch);
+    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+  }
+
+  // ── DAY PICKER MODAL ─────────────────────────────────────────────
+  function openDayPickerModal(placeObj, onAdded) {
+    const existing = document.getElementById('day-picker-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'day-picker-modal';
+    overlay.className = 'day-picker-modal';
+
+    const card = document.createElement('div');
+    card.className = 'day-picker-card';
+
+    const title = document.createElement('div');
+    title.className = 'day-picker-title';
+    title.textContent = 'Add to which day?';
+
+    // Date field
+    const dateField = document.createElement('label');
+    dateField.className = 'day-picker-field';
+    dateField.textContent = 'Day';
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.min = '2026-07-04';
+    dateInput.max = '2026-07-20';
+    const secToday = document.getElementById('view-today');
+    const activeDate = secToday?._getActiveDate?.() || '2026-07-04';
+    dateInput.value = (activeDate >= '2026-07-04' && activeDate <= '2026-07-20') ? activeDate : '2026-07-04';
+    dateField.appendChild(dateInput);
+
+    // Time fields
+    const timesRow = document.createElement('div');
+    timesRow.className = 'day-picker-times';
+
+    const startField = document.createElement('label');
+    startField.className = 'day-picker-field';
+    startField.textContent = 'Start time (optional)';
+    const startInput = document.createElement('input');
+    startInput.type = 'time';
+    startField.appendChild(startInput);
+
+    const endField = document.createElement('label');
+    endField.className = 'day-picker-field';
+    endField.textContent = 'End time (optional)';
+    const endInput = document.createElement('input');
+    endInput.type = 'time';
+    endField.appendChild(endInput);
+
+    timesRow.append(startField, endField);
+
+    // Buttons
+    const actions = document.createElement('div');
+    actions.className = 'day-picker-actions';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'day-picker-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'day-picker-add';
+    addBtn.textContent = 'Add';
+    addBtn.addEventListener('click', () => {
+      const chosenDate = dateInput.value;
+      if (!chosenDate) return;
+      addPlaceToTodayPlan(chosenDate, {
+        ...placeObj,
+        startTime: startInput.value || '',
+        endTime: endInput.value || '',
+      });
+      if (secToday?._renderForDate) secToday._renderForDate(chosenDate);
+      overlay.remove();
+      if (onAdded) onAdded();
+    });
+
+    actions.append(cancelBtn, addBtn);
+    card.append(title, dateField, timesRow, actions);
+    overlay.appendChild(card);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    dateInput.focus();
+  }
+
   // ── EXPENSE MODAL ────────────────────────────────────────────────
   function openExpenseModal(expense = null) {
     const isEdit = expense !== null;
@@ -1853,31 +2096,45 @@
           mapsLink.style.cssText = 'font-size:0.78rem;color:#1a237e;display:block;margin-bottom:8px';
           mapsLink.textContent = '📍 Open in Google Maps';
 
-          const addBtn = document.createElement('button');
-          addBtn.className = 'add-to-today-btn';
-          addBtn.textContent = 'Add to Today';
-          addBtn.addEventListener('click', () => {
+          const placeData = {
+            name: p.name,
+            category: p.category || '',
+            lat: parseFloat(p.lat),
+            lng: parseFloat(p.lng),
+            city: cityKey,
+            mapsUrl: mapsSearchUrl,
+          };
+
+          const btnPair = document.createElement('div');
+          btnPair.className = 'add-btn-pair';
+
+          const todayBtn = document.createElement('button');
+          todayBtn.className = 'add-to-today-btn';
+          todayBtn.textContent = '+ Today';
+          todayBtn.addEventListener('click', () => {
             const secToday = document.getElementById('view-today');
             const dateStr = secToday?._getActiveDate?.() || new Date().toISOString().slice(0, 10);
-            addPlaceToTodayPlan(dateStr, {
-              name: p.name,
-              category: p.category || '',
-              lat: parseFloat(p.lat),
-              lng: parseFloat(p.lng),
-              city: cityKey,
-              mapsUrl: mapsSearchUrl,
-            });
-            addBtn.textContent = 'Added ✓';
-            addBtn.classList.add('added');
+            addPlaceToTodayPlan(dateStr, placeData);
+            todayBtn.textContent = 'Added ✓';
+            todayBtn.classList.add('added');
             setTimeout(() => {
-              addBtn.textContent = 'Add to Today';
-              addBtn.classList.remove('added');
+              todayBtn.textContent = '+ Today';
+              todayBtn.classList.remove('added');
             }, 1500);
             if (secToday?._renderForDate) secToday._renderForDate(dateStr);
             infoWin.close();
           });
 
-          container.append(nameEl, mapsLink, addBtn);
+          const otherDayBtn = document.createElement('button');
+          otherDayBtn.className = 'add-to-other-day-btn';
+          otherDayBtn.textContent = '+ Other Day';
+          otherDayBtn.addEventListener('click', () => {
+            infoWin.close();
+            openDayPickerModal(placeData);
+          });
+
+          btnPair.append(todayBtn, otherDayBtn);
+          container.append(nameEl, mapsLink, btnPair);
           infoWin.setContent(container);
           infoWin.open(map, marker);
         });
@@ -1917,28 +2174,39 @@
           mapsLink.rel = 'noopener';
           mapsLink.textContent = '📍 Google Maps';
 
-          const addBtn = document.createElement('button');
-          addBtn.className = 'add-to-today-btn';
-          addBtn.textContent = '+ Add to Today';
-          addBtn.addEventListener('click', e => {
+          const rowPlaceData = {
+            name: p.name,
+            category: p.category || '',
+            lat: parseFloat(p.lat),
+            lng: parseFloat(p.lng),
+            city: cityKey,
+            mapsUrl: mapsSearchUrl,
+          };
+
+          const todayBtn = document.createElement('button');
+          todayBtn.className = 'add-to-today-btn';
+          todayBtn.textContent = '+ Today';
+          todayBtn.addEventListener('click', e => {
             e.stopPropagation();
             const secToday = document.getElementById('view-today');
             const dateStr = secToday?._getActiveDate?.() || new Date().toISOString().slice(0, 10);
-            addPlaceToTodayPlan(dateStr, {
-              name: p.name,
-              category: p.category || '',
-              lat: parseFloat(p.lat),
-              lng: parseFloat(p.lng),
-              city: cityKey,
-              mapsUrl: mapsSearchUrl,
-            });
-            addBtn.textContent = 'Added ✓';
-            addBtn.classList.add('added');
+            addPlaceToTodayPlan(dateStr, rowPlaceData);
+            todayBtn.textContent = 'Added ✓';
+            todayBtn.classList.add('added');
             if (secToday?._renderForDate) secToday._renderForDate(dateStr);
             setTimeout(() => actionBar.remove(), 1200);
           });
 
-          actionBar.append(mapsLink, addBtn);
+          const otherDayBtn = document.createElement('button');
+          otherDayBtn.className = 'add-to-other-day-btn';
+          otherDayBtn.textContent = '+ Other Day';
+          otherDayBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            actionBar.remove();
+            openDayPickerModal(rowPlaceData);
+          });
+
+          actionBar.append(mapsLink, todayBtn, otherDayBtn);
           row.insertAdjacentElement('afterend', actionBar);
         });
 
@@ -2083,12 +2351,27 @@
       if (flexPlaces.length === 0) {
         const msg = document.createElement('div');
         msg.className = 'today-empty-msg';
-        msg.textContent = 'No places added yet. Tap "Add to Today" on any map pin or list row.';
+        msg.textContent = 'No places added yet. Tap "+ Today" or "+ Other Day" on any map pin or list row.';
         flexList.appendChild(msg);
       } else {
-        flexPlaces.forEach(place => {
+        flexPlaces.forEach((place, i) => {
           const row = document.createElement('div');
           row.className = 'today-stop-row';
+
+          // Reorder buttons
+          const reorderWrap = document.createElement('div');
+          reorderWrap.className = 'today-reorder-btns';
+          const upBtn = document.createElement('button');
+          upBtn.className = 'today-reorder-btn';
+          upBtn.textContent = '↑';
+          upBtn.disabled = i === 0;
+          upBtn.addEventListener('click', () => { reorderPlaceInDayPlan(dateStr, i, i - 1); renderForDate(dateStr); });
+          const downBtn = document.createElement('button');
+          downBtn.className = 'today-reorder-btn';
+          downBtn.textContent = '↓';
+          downBtn.disabled = i === flexPlaces.length - 1;
+          downBtn.addEventListener('click', () => { reorderPlaceInDayPlan(dateStr, i, i + 1); renderForDate(dateStr); });
+          reorderWrap.append(upBtn, downBtn);
 
           const name = document.createElement('span');
           name.className = 'today-stop-name';
@@ -2097,6 +2380,53 @@
           const tags = document.createElement('div');
           tags.className = 'stop-tags';
           if (place.category) tags.appendChild(catPill(place.category));
+
+          // Time display
+          if (place.startTime || place.endTime) {
+            const timeEl = document.createElement('span');
+            timeEl.className = 'today-stop-time';
+            timeEl.textContent = place.startTime && place.endTime
+              ? `${place.startTime}–${place.endTime}`
+              : (place.startTime || place.endTime);
+            tags.appendChild(timeEl);
+          }
+
+          // Edit time button
+          const editBtn = document.createElement('button');
+          editBtn.className = 'today-edit-btn';
+          editBtn.textContent = '✏';
+          editBtn.setAttribute('aria-label', `Edit times for ${place.name}`);
+          editBtn.addEventListener('click', () => {
+            const existingEditor = row.nextElementSibling;
+            if (existingEditor && existingEditor.classList.contains('today-place-editor')) {
+              existingEditor.remove();
+              return;
+            }
+            document.querySelectorAll('.today-place-editor').forEach(el => el.remove());
+            const editor = document.createElement('div');
+            editor.className = 'today-place-editor';
+            const startLabel = document.createElement('label');
+            startLabel.textContent = 'Start';
+            const startIn = document.createElement('input');
+            startIn.type = 'time';
+            startIn.value = place.startTime || '';
+            startLabel.appendChild(startIn);
+            const endLabel = document.createElement('label');
+            endLabel.textContent = 'End';
+            const endIn = document.createElement('input');
+            endIn.type = 'time';
+            endIn.value = place.endTime || '';
+            endLabel.appendChild(endIn);
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'today-place-save-btn';
+            saveBtn.textContent = 'Save';
+            saveBtn.addEventListener('click', () => {
+              updatePlaceInTodayPlan(dateStr, i, { startTime: startIn.value, endTime: endIn.value });
+              renderForDate(dateStr);
+            });
+            editor.append(startLabel, endLabel, saveBtn);
+            row.insertAdjacentElement('afterend', editor);
+          });
 
           const removeBtn = document.createElement('button');
           removeBtn.className = 'today-remove-btn';
@@ -2107,7 +2437,7 @@
             renderForDate(dateStr);
           });
 
-          row.append(name, tags, removeBtn);
+          row.append(reorderWrap, name, tags, editBtn, removeBtn);
           flexList.appendChild(row);
         });
       }
