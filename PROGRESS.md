@@ -257,3 +257,48 @@ All 5 planned features are working: Itinerary (17 days + maps), Checklist, Budge
 - [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
 - [ ] Update `GBP_TO_CAD` closer to the trip date
 - [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+
+---
+
+## Session 11 — 2026-04-06
+
+### What we built
+
+**Today tab (new 5th tab) — day-builder feature:**
+
+The core idea: the existing Itinerary tab is a rigid pre-planned schedule, but in practice the users want to choose activities each morning with flexibility, while still having booked/fixed events (Bath day trip, Harry Potter Studios, shows) appear automatically.
+
+**New "Today" tab:**
+- Date picker at the top — defaults to today's real date, user picks manually each morning
+- **Fixed Events** section: auto-populated from the itinerary sheet for the selected date, for rows where `is_fixed = 1`. Shown with 🔒, sorted by start time, no remove button. Requires user to add `is_fixed` column to itinerary Google Sheet and set `1` on locked events.
+- **My Places** section: places added from the Map tab, stored in localStorage keyed by date string (`uk_trip_today_plans`). Each row has a ✕ remove button. Persists across reloads.
+- **Route map**: numbered Google Maps markers for all stops (fixed + flexible combined), `fitBounds()` to show the full day. Hidden when no stops have coordinates.
+
+**Map tab additions:**
+- Tapping a **map pin** now opens a Google Maps InfoWindow (instead of immediately opening Google Maps) with the place name, an "Open in Google Maps" link, and an **"Add to Today"** button
+- Tapping a **list row** toggles an inline action bar below it with the same two options — tapping again closes it
+- "Add to Today" saves the place to localStorage for the date currently selected in Today tab, briefly shows "Added ✓", and live-updates the Today tab if open
+
+**Architecture decisions:**
+- Kept the existing Itinerary tab untouched — Today tab is purely additive
+- Fixed events use the existing itinerary CSV (no new sheet needed), just a new `is_fixed` column
+- Flexible places use a new localStorage key `uk_trip_today_plans` — object keyed by `YYYY-MM-DD` date strings, each value is an array of `{ name, category, lat, lng, city, mapsUrl }` objects
+- Today tab exposes `_renderForDate(dateStr)` and `_getActiveDate()` on its section element so Map tab can call back into it without global state
+
+**Technical changes:**
+- `groupByDay()` — added `is_fixed` field to each stop object (parsed from Sheet column)
+- Added 4 localStorage helpers: `getTodayPlans`, `getTodayPlanForDate`, `addPlaceToTodayPlan`, `removePlaceFromTodayPlan`
+- New `renderTodayTab(dayMap)` function
+- `renderMapTab()` modified: marker click → InfoWindow with "Add to Today"; list row click → toggling `.place-row-actions` action bar
+- Service worker bumped `uk-trip-v9` → `uk-trip-v10`
+
+### User must do manually (one-time Sheet setup)
+Add an `is_fixed` column to the itinerary Google Sheet tab. Set `1` for Bath day trip, Harry Potter Studios, any booked shows. Leave blank or `0` for all other stops.
+
+### Remaining nice-to-haves
+- [ ] Push to GitHub (session changes not yet committed/deployed)
+- [ ] Add `is_fixed` column to itinerary sheet and mark locked events
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet (lat ~45.5, lng ~-73.5 = Montreal)
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities

@@ -853,6 +853,152 @@
       border-radius: 50%;
       flex-shrink: 0;
     }
+
+    /* ── Today tab ────────────────────────────────────────── */
+    .today-date-picker-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px 16px;
+    }
+
+    .today-date-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    #today-date-input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+    }
+
+    #today-date-input:focus { border-color: var(--london); }
+
+    .today-section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      padding-left: 2px;
+    }
+
+    .today-stop-list {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .today-stop-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .today-stop-row:last-child { border-bottom: none; }
+
+    .today-lock-icon {
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .today-stop-name {
+      font-size: 0.88rem;
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+      line-height: 1.3;
+    }
+
+    .today-stop-time {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .today-remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+
+    .today-remove-btn:hover { color: #dc2626; }
+
+    .today-empty-msg {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 20px 16px;
+      line-height: 1.5;
+    }
+
+    #today-map-container {
+      height: 300px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      background: #e8eaf6;
+    }
+
+    .add-to-today-btn {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--london);
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+
+    .add-to-today-btn:active { opacity: 0.75; }
+    .add-to-today-btn.added  { background: #16a34a; }
+
+    .place-row-actions {
+      padding: 6px 16px 10px 36px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .place-row-actions a {
+      font-size: 0.78rem;
+      color: var(--london);
+      text-decoration: none;
+    }
+
+    .place-row-actions a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -867,6 +1013,7 @@
   <button data-tab="places">Map</button>
   <button data-tab="checklist">Checklist</button>
   <button data-tab="budget">Budget</button>
+  <button data-tab="today">Today</button>
 </nav>
 
 <div id="app">
@@ -947,6 +1094,7 @@
         maps:     row.maps_url       || '',
         lat:      row.lat            || '',
         lng:      row.lng            || '',
+        is_fixed: row.is_fixed === '1' || (row.is_fixed || '').toLowerCase() === 'true',
       });
     }
     return map;
@@ -1292,6 +1440,34 @@
   function updateExpenseInStorage(expense) {
     const expenses = getExpenses().map(e => e.id === expense.id ? expense : e);
     localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+  }
+
+  // ── TODAY PLAN STORAGE ──────────────────────────────────────────
+  const TODAY_KEY = 'uk_trip_today_plans';
+
+  function getTodayPlans() {
+    try { return JSON.parse(localStorage.getItem(TODAY_KEY) || '{}'); }
+    catch { return {}; }
+  }
+
+  function getTodayPlanForDate(dateStr) {
+    return getTodayPlans()[dateStr] || [];
+  }
+
+  function addPlaceToTodayPlan(dateStr, placeObj) {
+    const plans = getTodayPlans();
+    if (!plans[dateStr]) plans[dateStr] = [];
+    if (!plans[dateStr].some(p => p.name === placeObj.name)) {
+      plans[dateStr].push(placeObj);
+    }
+    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+  }
+
+  function removePlaceFromTodayPlan(dateStr, placeName) {
+    const plans = getTodayPlans();
+    if (!plans[dateStr]) return;
+    plans[dateStr] = plans[dateStr].filter(p => p.name !== placeName);
+    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
   }
 
   // ── EXPENSE MODAL ────────────────────────────────────────────────
@@ -1661,8 +1837,49 @@
         const cityLabel = cityKey === 'edinburgh' ? 'Edinburgh, UK' : 'London, UK';
         const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ', ' + cityLabel)}`;
 
+        const infoWin = new google.maps.InfoWindow();
         marker.addListener('click', () => {
-          window.open(mapsSearchUrl, '_blank');
+          const container = document.createElement('div');
+          container.style.cssText = 'padding:4px 2px;min-width:150px';
+
+          const nameEl = document.createElement('div');
+          nameEl.style.cssText = 'font-weight:600;font-size:0.88rem;margin-bottom:6px';
+          nameEl.textContent = p.name;
+
+          const mapsLink = document.createElement('a');
+          mapsLink.href = mapsSearchUrl;
+          mapsLink.target = '_blank';
+          mapsLink.rel = 'noopener';
+          mapsLink.style.cssText = 'font-size:0.78rem;color:#1a237e;display:block;margin-bottom:8px';
+          mapsLink.textContent = '📍 Open in Google Maps';
+
+          const addBtn = document.createElement('button');
+          addBtn.className = 'add-to-today-btn';
+          addBtn.textContent = 'Add to Today';
+          addBtn.addEventListener('click', () => {
+            const secToday = document.getElementById('view-today');
+            const dateStr = secToday?._getActiveDate?.() || new Date().toISOString().slice(0, 10);
+            addPlaceToTodayPlan(dateStr, {
+              name: p.name,
+              category: p.category || '',
+              lat: parseFloat(p.lat),
+              lng: parseFloat(p.lng),
+              city: cityKey,
+              mapsUrl: mapsSearchUrl,
+            });
+            addBtn.textContent = 'Added ✓';
+            addBtn.classList.add('added');
+            setTimeout(() => {
+              addBtn.textContent = 'Add to Today';
+              addBtn.classList.remove('added');
+            }, 1500);
+            if (secToday?._renderForDate) secToday._renderForDate(dateStr);
+            infoWin.close();
+          });
+
+          container.append(nameEl, mapsLink, addBtn);
+          infoWin.setContent(container);
+          infoWin.open(map, marker);
         });
 
         // List row
@@ -1674,16 +1891,55 @@
         const name = document.createElement('span');
         name.className = 'place-name';
         name.textContent = p.name;
-        const catPill = document.createElement('span');
-        catPill.className = `cat-pill cat-${(p.category || 'other').toLowerCase()}`;
-        catPill.textContent = p.category || 'other';
+        const catPillEl = document.createElement('span');
+        catPillEl.className = `cat-pill cat-${(p.category || 'other').toLowerCase()}`;
+        catPillEl.textContent = p.category || 'other';
         const cityBadge = document.createElement('span');
         cityBadge.className = `place-city-badge ${cityKey}`;
         cityBadge.textContent = cityKey === 'edinburgh' ? 'EDI' : 'LDN';
-        row.append(dot, name, catPill, cityBadge);
+        row.append(dot, name, catPillEl, cityBadge);
 
         row.addEventListener('click', () => {
-          window.open(mapsSearchUrl, '_blank');
+          // Toggle action bar
+          const existing = row.nextElementSibling;
+          if (existing && existing.classList.contains('place-row-actions')) {
+            existing.remove();
+            return;
+          }
+          document.querySelectorAll('.place-row-actions').forEach(el => el.remove());
+
+          const actionBar = document.createElement('div');
+          actionBar.className = 'place-row-actions';
+
+          const mapsLink = document.createElement('a');
+          mapsLink.href = mapsSearchUrl;
+          mapsLink.target = '_blank';
+          mapsLink.rel = 'noopener';
+          mapsLink.textContent = '📍 Google Maps';
+
+          const addBtn = document.createElement('button');
+          addBtn.className = 'add-to-today-btn';
+          addBtn.textContent = '+ Add to Today';
+          addBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            const secToday = document.getElementById('view-today');
+            const dateStr = secToday?._getActiveDate?.() || new Date().toISOString().slice(0, 10);
+            addPlaceToTodayPlan(dateStr, {
+              name: p.name,
+              category: p.category || '',
+              lat: parseFloat(p.lat),
+              lng: parseFloat(p.lng),
+              city: cityKey,
+              mapsUrl: mapsSearchUrl,
+            });
+            addBtn.textContent = 'Added ✓';
+            addBtn.classList.add('added');
+            if (secToday?._renderForDate) secToday._renderForDate(dateStr);
+            setTimeout(() => actionBar.remove(), 1200);
+          });
+
+          actionBar.append(mapsLink, addBtn);
+          row.insertAdjacentElement('afterend', actionBar);
         });
 
         listWrap.appendChild(row);
@@ -1731,6 +1987,178 @@
     function applyPlaceFilters() {
       if (window._applyPlaceFilters) window._applyPlaceFilters();
     }
+
+    return section;
+  }
+
+  // ── TODAY TAB RENDERER ──────────────────────────────────────────
+  function renderTodayTab(dayMap) {
+    const section = document.createElement('section');
+    section.id = 'view-today';
+
+    // Date picker bar
+    const pickerBar = document.createElement('div');
+    pickerBar.className = 'today-date-picker-bar';
+    const pickerLabel = document.createElement('span');
+    pickerLabel.className = 'today-date-label';
+    pickerLabel.textContent = 'Planning day';
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.id = 'today-date-input';
+    dateInput.value = new Date().toISOString().slice(0, 10);
+    pickerBar.append(pickerLabel, dateInput);
+    section.appendChild(pickerBar);
+
+    // Route map container
+    const mapContainer = document.createElement('div');
+    mapContainer.id = 'today-map-container';
+    mapContainer.style.display = 'none';
+    section.appendChild(mapContainer);
+    let todayMap = null;
+
+    // Fixed events section
+    const fixedLabel = document.createElement('div');
+    fixedLabel.className = 'today-section-label';
+    fixedLabel.textContent = 'Fixed Events';
+    const fixedList = document.createElement('div');
+    fixedList.className = 'today-stop-list';
+
+    // My Places section
+    const flexLabel = document.createElement('div');
+    flexLabel.className = 'today-section-label';
+    flexLabel.textContent = 'My Places';
+    const flexList = document.createElement('div');
+    flexList.className = 'today-stop-list';
+
+    section.append(fixedLabel, fixedList, flexLabel, flexList);
+
+    function renderForDate(dateStr) {
+      const day = dayMap.get(dateStr);
+      const fixedStops = day
+        ? day.stops.filter(s => s.is_fixed).sort((a, b) => (a.start || '').localeCompare(b.start || ''))
+        : [];
+      const flexPlaces = getTodayPlanForDate(dateStr);
+
+      // Fixed events list
+      fixedList.innerHTML = '';
+      if (fixedStops.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'today-empty-msg';
+        msg.textContent = 'No fixed events for this day.';
+        fixedList.appendChild(msg);
+      } else {
+        fixedStops.forEach(stop => {
+          const row = document.createElement('div');
+          row.className = 'today-stop-row';
+
+          const lock = document.createElement('span');
+          lock.className = 'today-lock-icon';
+          lock.textContent = '🔒';
+
+          const name = document.createElement('span');
+          name.className = 'today-stop-name';
+          name.textContent = stop.name;
+
+          const tags = document.createElement('div');
+          tags.className = 'stop-tags';
+          if (stop.category) tags.appendChild(catPill(stop.category));
+
+          row.append(lock, name, tags);
+
+          if (stop.start || stop.end) {
+            const timeEl = document.createElement('span');
+            timeEl.className = 'today-stop-time';
+            timeEl.textContent = stop.start && stop.end
+              ? `${stop.start}–${stop.end}`
+              : (stop.start || stop.end);
+            row.appendChild(timeEl);
+          }
+
+          fixedList.appendChild(row);
+        });
+      }
+
+      // My Places list
+      flexList.innerHTML = '';
+      if (flexPlaces.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'today-empty-msg';
+        msg.textContent = 'No places added yet. Tap "Add to Today" on any map pin or list row.';
+        flexList.appendChild(msg);
+      } else {
+        flexPlaces.forEach(place => {
+          const row = document.createElement('div');
+          row.className = 'today-stop-row';
+
+          const name = document.createElement('span');
+          name.className = 'today-stop-name';
+          name.textContent = place.name;
+
+          const tags = document.createElement('div');
+          tags.className = 'stop-tags';
+          if (place.category) tags.appendChild(catPill(place.category));
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'today-remove-btn';
+          removeBtn.textContent = '✕';
+          removeBtn.setAttribute('aria-label', `Remove ${place.name}`);
+          removeBtn.addEventListener('click', () => {
+            removePlaceFromTodayPlan(dateStr, place.name);
+            renderForDate(dateStr);
+          });
+
+          row.append(name, tags, removeBtn);
+          flexList.appendChild(row);
+        });
+      }
+
+      // Route map
+      const fixedWithCoords = fixedStops.filter(s => s.lat && s.lng);
+      const flexWithCoords  = flexPlaces.filter(p => p.lat && p.lng);
+      const allMapStops = [
+        ...fixedWithCoords.map((s, i) => ({ name: s.name, lat: parseFloat(s.lat), lng: parseFloat(s.lng), label: String(i + 1) })),
+        ...flexWithCoords.map((p, i)  => ({ name: p.name, lat: p.lat, lng: p.lng, label: String(fixedWithCoords.length + i + 1) })),
+      ];
+
+      mapContainer.style.display = allMapStops.length > 0 ? 'block' : 'none';
+
+      if (allMapStops.length > 0) {
+        whenMapsReady(() => {
+          if (dateInput.value !== dateStr) return; // stale callback guard
+          if (!todayMap) {
+            todayMap = new google.maps.Map(mapContainer, {
+              mapTypeControl: false, streetViewControl: false,
+              fullscreenControl: false, zoomControl: true,
+            });
+          }
+          (todayMap._markers || []).forEach(m => m.setMap(null));
+          todayMap._markers = [];
+
+          const bounds = new google.maps.LatLngBounds();
+          allMapStops.forEach(stop => {
+            const pos = { lat: stop.lat, lng: stop.lng };
+            const marker = new google.maps.Marker({
+              position: pos, map: todayMap,
+              label: stop.label,
+              title: stop.name,
+            });
+            marker.addListener('click', () => {
+              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}`, '_blank');
+            });
+            bounds.extend(pos);
+            todayMap._markers.push(marker);
+          });
+          todayMap.fitBounds(bounds);
+        });
+      }
+    }
+
+    renderForDate(dateInput.value);
+    dateInput.addEventListener('change', () => renderForDate(dateInput.value));
+
+    // Expose for Map tab callbacks
+    section._renderForDate = renderForDate;
+    section._getActiveDate = () => dateInput.value;
 
     return section;
   }
@@ -1878,6 +2306,9 @@
       // — Places / Map section
       const secPlaces = renderMapTab(placesRows);
 
+      // — Today section
+      const secToday = renderTodayTab(dayMap);
+
       // — Checklist section
       const secCheck = document.createElement('section');
       secCheck.id = 'view-checklist';
@@ -1886,7 +2317,7 @@
       // — Budget section
       const secBudget = document.createElement('section');
       secBudget.id = 'view-budget';
-      app.append(secItin, secPlaces, secCheck, secBudget);
+      app.append(secItin, secPlaces, secCheck, secBudget, secToday);
       renderBudget(budgetRows);
 
       // FAB for budget tab
