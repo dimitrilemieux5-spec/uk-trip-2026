@@ -1169,11 +1169,26 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
   // ── CONFIG ──────────────────────────────────────────────────────
   // Paste your Google Maps JavaScript API key below.
   // Get one at: https://console.cloud.google.com → APIs → Maps JavaScript API
   const GOOGLE_MAPS_API_KEY = 'AIzaSyB8O67FAh1PnxrkYZIKQk4qsgGnFWJKn84';
+
+  // ── FIREBASE INIT ────────────────────────────────────────────────
+  firebase.initializeApp({
+    apiKey:            "AIzaSyDr7PKFfKJMuwIWwCj7SVxYDuLC8taWSl8",
+    authDomain:        "uk-trip-2026-abfac.firebaseapp.com",
+    databaseURL:       "https://uk-trip-2026-abfac-default-rtdb.firebaseio.com",
+    projectId:         "uk-trip-2026-abfac",
+    storageBucket:     "uk-trip-2026-abfac.firebasestorage.app",
+    messagingSenderId: "43749399027",
+    appId:             "1:43749399027:web:ff552d0fcbf7c17ba9da86"
+  });
+  const db = firebase.database();
+  db.ref('.info/connected'); // warm up connection
 
   const ITINERARY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=0&single=true&output=csv';
   const CHECKLIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRknNz2uwr2uYfkQsleUTY6x87_Myqfra5fH138eamG3YN2L7OSe3L9JVakZJf4VpYE0okTUaIdGzyD/pub?gid=195264691&single=true&output=csv';
@@ -1437,18 +1452,57 @@
     return card;
   }
 
-  // ── CHECKLIST STATE (localStorage) ─────────────────────────────
-  const CHECKLIST_KEY = 'uk_trip_checklist_state';
+  // ── FIREBASE CACHE + LIVE LISTENERS ─────────────────────────────
+  // In-memory cache populated by Firebase listeners.
+  // All read helpers below read from this cache (synchronous).
+  // All write helpers write to Firebase; listeners update the cache
+  // and re-render the relevant tab if it is currently open.
+  let _checkRows = []; // stored so listeners can re-render checklist
 
+  const fbCache = { checklist: {}, expenses: [], dayPlans: {} };
+
+  function getActiveTab() {
+    return document.querySelector('#tabs button.active')?.dataset.tab;
+  }
+
+  db.ref('checklist').on('value', snap => {
+    fbCache.checklist = snap.val() || {};
+    if (getActiveTab() === 'checklist' && _checkRows.length) {
+      const sec = document.getElementById('view-checklist');
+      if (sec) { sec.innerHTML = ''; sec.appendChild(renderChecklist(_checkRows)); }
+    }
+  });
+
+  db.ref('expenses').on('value', snap => {
+    const val = snap.val();
+    fbCache.expenses = Array.isArray(val) ? val
+      : (val && typeof val === 'object' ? Object.values(val).filter(Boolean) : []);
+    if (getActiveTab() === 'budget') renderBudget(budgetCategories);
+  });
+
+  db.ref('day_plans').on('value', snap => {
+    const raw = snap.val() || {};
+    // Firebase may convert array values to objects; normalise back to arrays
+    fbCache.dayPlans = Object.fromEntries(
+      Object.entries(raw).map(([d, v]) =>
+        [d, Array.isArray(v) ? v : Object.values(v).filter(Boolean)]
+      )
+    );
+    if (getActiveTab() === 'today') {
+      const sec = document.getElementById('view-today');
+      if (sec?._renderForDate) sec._renderForDate(sec._getActiveDate());
+    }
+  });
+
+  // ── CHECKLIST STATE ──────────────────────────────────────────────
   function getChecklistState() {
-    try { return JSON.parse(localStorage.getItem(CHECKLIST_KEY) || '{}'); }
-    catch { return {}; }
+    return fbCache.checklist;
   }
 
   function saveChecklistItem(key, patch) {
-    const state = getChecklistState();
+    const state = { ...fbCache.checklist };
     state[key] = Object.assign(state[key] || {}, patch);
-    localStorage.setItem(CHECKLIST_KEY, JSON.stringify(state));
+    db.ref('checklist').set(state);
   }
 
   function sheetStatusToApp(s) {
@@ -1568,67 +1622,63 @@
   let budgetFilter = 'dimitri';
 
   function getExpenses() {
-    try { return JSON.parse(localStorage.getItem('uk_trip_expenses') || '[]'); }
-    catch { return []; }
+    return fbCache.expenses;
   }
 
   function saveExpenseToStorage(expense) {
-    const expenses = getExpenses();
-    expenses.push(expense);
-    localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+    const expenses = [...getExpenses(), expense];
+    db.ref('expenses').set(expenses);
   }
 
   function deleteExpenseFromStorage(id) {
-    const expenses = getExpenses().filter(e => e.id !== id);
-    localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+    db.ref('expenses').set(getExpenses().filter(e => e.id !== id));
   }
 
   function updateExpenseInStorage(expense) {
-    const expenses = getExpenses().map(e => e.id === expense.id ? expense : e);
-    localStorage.setItem('uk_trip_expenses', JSON.stringify(expenses));
+    db.ref('expenses').set(getExpenses().map(e => e.id === expense.id ? expense : e));
   }
 
   // ── TODAY PLAN STORAGE ──────────────────────────────────────────
-  const TODAY_KEY = 'uk_trip_today_plans';
-
-  function getTodayPlans() {
-    try { return JSON.parse(localStorage.getItem(TODAY_KEY) || '{}'); }
-    catch { return {}; }
+  function getTodayPlanForDate(dateStr) {
+    return fbCache.dayPlans[dateStr] || [];
   }
 
-  function getTodayPlanForDate(dateStr) {
-    return getTodayPlans()[dateStr] || [];
+  function _writeDayPlans(plans) {
+    db.ref('day_plans').set(plans);
   }
 
   function addPlaceToTodayPlan(dateStr, placeObj) {
-    const plans = getTodayPlans();
+    const plans = { ...fbCache.dayPlans };
     if (!plans[dateStr]) plans[dateStr] = [];
     if (!plans[dateStr].some(p => p.name === placeObj.name)) {
-      plans[dateStr].push(placeObj);
+      plans[dateStr] = [...plans[dateStr], placeObj];
     }
-    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+    _writeDayPlans(plans);
   }
 
   function removePlaceFromTodayPlan(dateStr, placeName) {
-    const plans = getTodayPlans();
+    const plans = { ...fbCache.dayPlans };
     if (!plans[dateStr]) return;
     plans[dateStr] = plans[dateStr].filter(p => p.name !== placeName);
-    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+    _writeDayPlans(plans);
   }
 
   function reorderPlaceInDayPlan(dateStr, fromIndex, toIndex) {
-    const plans = getTodayPlans();
-    const arr = plans[dateStr] || [];
+    const plans = { ...fbCache.dayPlans };
+    const arr = [...(plans[dateStr] || [])];
     const [item] = arr.splice(fromIndex, 1);
     arr.splice(toIndex, 0, item);
     plans[dateStr] = arr;
-    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+    _writeDayPlans(plans);
   }
 
   function updatePlaceInTodayPlan(dateStr, index, patch) {
-    const plans = getTodayPlans();
-    if (plans[dateStr]?.[index]) Object.assign(plans[dateStr][index], patch);
-    localStorage.setItem(TODAY_KEY, JSON.stringify(plans));
+    const plans = { ...fbCache.dayPlans };
+    if (plans[dateStr]?.[index]) {
+      plans[dateStr] = [...plans[dateStr]];
+      plans[dateStr][index] = { ...plans[dateStr][index], ...patch };
+    }
+    _writeDayPlans(plans);
   }
 
   // ── DAY PICKER MODAL ─────────────────────────────────────────────
@@ -2640,6 +2690,7 @@
       const secToday = renderTodayTab(dayMap);
 
       // — Checklist section
+      _checkRows = checkRows; // store for Firebase live re-render
       const secCheck = document.createElement('section');
       secCheck.id = 'view-checklist';
       secCheck.appendChild(renderChecklist(checkRows));
