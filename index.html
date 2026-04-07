@@ -1129,29 +1129,39 @@
     .day-picker-cancel { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
     .day-picker-add { background: var(--london); color: white; }
 
-    /* ── Map tab — two-button add pair ─────────────────────── */
-    .add-btn-pair { display: flex; gap: 6px; flex-wrap: wrap; }
-    .add-to-other-day-btn {
-      display: inline-block;
-      padding: 5px 12px;
-      border-radius: 8px;
-      border: none;
-      background: #4a5568;
-      color: white;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition: opacity 0.15s;
+    /* ── My Places section inside day cards ─────────────────── */
+    .my-places-section {
+      border-top: 1px solid var(--border);
+      margin-top: 6px;
+      padding-top: 4px;
     }
-    .add-to-other-day-btn:active { opacity: 0.75; }
+    .my-places-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      padding: 8px 16px 4px;
+    }
+    .my-places-empty {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 8px 16px 12px;
+      font-style: italic;
+    }
+    .my-places-list {
+      padding-bottom: 4px;
+    }
+
+    /* ── Map tab — single add button ────────────────────────── */
+    .add-to-today-btn:active { opacity: 0.75; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>UK Trip 2026 ✈️</h1>
-  <p>London &amp; Edinburgh · July 4–20</p>
+  <p>London &amp; Edinburgh · July 3–21</p>
 </header>
 
 <nav id="tabs">
@@ -1159,7 +1169,6 @@
   <button data-tab="places">Map</button>
   <button data-tab="checklist">Checklist</button>
   <button data-tab="budget">Budget</button>
-  <button data-tab="today">Day Plans</button>
 </nav>
 
 <div id="app">
@@ -1236,29 +1245,18 @@
   }
 
   // ── ITINERARY HELPERS ───────────────────────────────────────────
-  function groupByDay(rows) {
-    const map = new Map();
-    for (const row of rows) {
-      const key = row.date; if (!key) continue;
-      if (!map.has(key)) map.set(key, {
-        date: row.date, day_number: row.day_number,
-        city: row.city, day_theme: row.day_theme, stops: []
-      });
-      if (row.stop_name) map.get(key).stops.push({
-        order:    row.stop_order,
-        name:     row.stop_name,
-        start:    row.stop_start    || '',
-        end:      row.stop_end      || '',
-        category: (row.stop_category || '').toLowerCase(),
-        cost:     (row.stop_cost     || '').toLowerCase(),
-        note:     row.stop_note_en   || '',
-        maps:     row.maps_url       || '',
-        lat:      row.lat            || '',
-        lng:      row.lng            || '',
-        is_fixed: row.is_fixed === '1' || (row.is_fixed || '').toLowerCase() === 'true',
-      });
+  function generateTripDays() {
+    const days = [];
+    const start = new Date('2026-07-03');
+    const end   = new Date('2026-07-21');
+    let dayNum = 1;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().slice(0, 10);
+      const day = d.getDate();
+      const city = (day >= 11 && day <= 18) ? 'Edinburgh' : 'London';
+      days.push({ date: dateStr, city, day_number: dayNum++ });
     }
-    return map;
+    return days;
   }
 
   function formatDate(dateStr) {
@@ -1307,11 +1305,17 @@
     edinburgh: { lat: 55.939544, lng: -3.2163927, label: 'Airbnb Edinburgh', address: '6 McNeil St, Edinburgh EH11 1JN' },
   };
 
+  // ── DAY CARD MAP REFS ────────────────────────────────────────────
+  // Keyed by dateStr "YYYY-MM-DD". Stores map + marker arrays so
+  // renderMyPlacesSection can add/remove flex markers without full re-render.
+  const _dayCardMaps = {};
+
   // ── DAY CARD RENDERER ───────────────────────────────────────────
   function renderDayCard(day) {
     const card = document.createElement('div');
     card.className = 'day-card';
     const cityKey = day.city.toLowerCase().includes('edinburgh') ? 'edinburgh' : 'london';
+    const dateStr = day.date;
 
     // Header
     const hdr = document.createElement('div');
@@ -1320,7 +1324,7 @@
     top.className = 'day-header-top';
     const num = document.createElement('span');
     num.className = 'day-number';
-    num.textContent = day.day_number;
+    num.textContent = 'Day ' + day.day_number;
     const badge = document.createElement('span');
     badge.className = 'city-badge ' + cityKey;
     badge.textContent = day.city;
@@ -1328,15 +1332,11 @@
     const dateEl = document.createElement('div');
     dateEl.className = 'day-date';
     dateEl.textContent = formatDate(day.date);
-    const theme = document.createElement('div');
-    theme.className = 'day-theme';
-    theme.textContent = day.day_theme;
-    hdr.append(top, dateEl, theme);
+    hdr.append(top, dateEl);
     card.appendChild(hdr);
 
     // Map
-    const stopsWithCoords = day.stops.filter(s => s.lat && s.lng);
-    if (GOOGLE_MAPS_API_KEY !== 'YOUR_API_KEY_HERE' && stopsWithCoords.length > 0) {
+    if (GOOGLE_MAPS_API_KEY !== 'YOUR_API_KEY_HERE') {
       const mapDiv = document.createElement('div');
       mapDiv.className = 'map-container';
       card.appendChild(mapDiv);
@@ -1344,16 +1344,6 @@
         const map = new google.maps.Map(mapDiv, {
           mapTypeControl: false, streetViewControl: false,
           fullscreenControl: false, zoomControl: true,
-        });
-        const bounds = new google.maps.LatLngBounds();
-        stopsWithCoords.forEach(stop => {
-          const pos = { lat: parseFloat(stop.lat), lng: parseFloat(stop.lng) };
-          const marker = new google.maps.Marker({ position: pos, map, label: String(stop.order), title: stop.name });
-          marker.addListener('click', () => {
-            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name + ', ' + day.city + ', UK')}`;
-            window.open(url, '_blank');
-          });
-          bounds.extend(pos);
         });
         const airbnb = AIRBNB[cityKey];
         if (airbnb) {
@@ -1376,80 +1366,207 @@
           airbnbMarker.addListener('click', () => {
             window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(airbnb.address)}`, '_blank');
           });
-          bounds.extend(airbnbPos);
+          map.setCenter(airbnbPos);
+          map.setZoom(13);
         }
-        map.fitBounds(bounds);
+        // Store map data so renderMyPlacesFlexMarkers can add flex markers
+        _dayCardMaps[dateStr] = { googleMap: map, fixedMarkers: [], flexMarkers: [], fixedStops: [], cityKey, airbnb };
+        // Render flex markers for any places already in cache
+        renderMyPlacesFlexMarkers(dateStr);
       });
     }
 
-    // Stop list
-    const ul = document.createElement('ul');
-    ul.className = 'stop-list';
-    day.stops.forEach((stop, idx) => {
-      const li = document.createElement('li');
-      li.className = 'stop-item';
+    // My Places section (populated by renderMyPlacesSection after init)
+    const myPlacesSection = document.createElement('div');
+    myPlacesSection.className = 'my-places-section';
+    myPlacesSection.dataset.date = dateStr;
+    card.appendChild(myPlacesSection);
 
-      const row = document.createElement('div');
-      row.className = 'stop-row' + (stop.note ? ' has-note' : '');
-
-      const ord = document.createElement('span');
-      ord.className = 'stop-order';
-      ord.textContent = stop.order;
-
-      const name = document.createElement('span');
-      name.className = 'stop-name';
-      name.textContent = stop.name;
-
-      const tags = document.createElement('div');
-      tags.className = 'stop-tags';
-      if (stop.category) tags.appendChild(catPill(stop.category));
-      if (stop.cost)     tags.appendChild(costBadge(stop.cost));
-
-      if (stop.start || stop.end) {
-        const timeEl = document.createElement('span');
-        timeEl.className = 'stop-time';
-        timeEl.textContent = stop.start && stop.end ? `${stop.start}–${stop.end}` : (stop.start || stop.end);
-        row.append(ord, timeEl, name, tags);
-      } else {
-        row.append(ord, name, tags);
-      }
-
-      if (stop.note) {
-        const chev = document.createElement('span');
-        chev.className = 'chevron';
-        chev.textContent = '▾';
-        row.appendChild(chev);
-
-        const noteEl = document.createElement('div');
-        noteEl.className = 'stop-note';
-        noteEl.textContent = stop.note;
-
-        row.addEventListener('click', () => {
-          const open = noteEl.classList.toggle('open');
-          chev.classList.toggle('open', open);
-        });
-        li.append(row, noteEl);
-      } else {
-        li.appendChild(row);
-      }
-
-      ul.appendChild(li);
-
-      const nextStop = day.stops[idx + 1];
-      if (nextStop) {
-        const dirLink = document.createElement('a');
-        dirLink.className = 'stop-directions';
-        const origin = encodeURIComponent(stop.name + ', ' + day.city + ', UK');
-        const dest   = encodeURIComponent(nextStop.name + ', ' + day.city + ', UK');
-        dirLink.href = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
-        dirLink.target = '_blank';
-        dirLink.rel = 'noopener';
-        dirLink.textContent = '→ directions';
-        ul.appendChild(dirLink);
-      }
-    });
-    card.appendChild(ul);
     return card;
+  }
+
+  // ── MY PLACES SECTION RENDERER ──────────────────────────────────
+  // Called after init() to populate each day card's My Places section,
+  // and by the Firebase listener whenever day_plans data changes.
+  function renderMyPlacesSection(dateStr) {
+    const section = document.querySelector(`.my-places-section[data-date="${dateStr}"]`);
+    if (!section) return;
+    section.innerHTML = '';
+
+    const places = getTodayPlanForDate(dateStr);
+
+    const label = document.createElement('div');
+    label.className = 'my-places-label';
+    label.textContent = 'My Places';
+    section.appendChild(label);
+
+    const list = document.createElement('div');
+    list.className = 'my-places-list today-stop-list';
+
+    if (places.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'my-places-empty';
+      empty.textContent = 'No places added yet — use the Map tab to add some.';
+      list.appendChild(empty);
+    } else {
+      places.forEach((place, i) => {
+        const row = document.createElement('div');
+        row.className = 'today-stop-row';
+
+        // Reorder buttons
+        const reorderWrap = document.createElement('div');
+        reorderWrap.className = 'today-reorder-btns';
+        const upBtn = document.createElement('button');
+        upBtn.className = 'today-reorder-btn';
+        upBtn.textContent = '↑';
+        upBtn.disabled = i === 0;
+        upBtn.addEventListener('click', () => { reorderPlaceInDayPlan(dateStr, i, i - 1); });
+        const downBtn = document.createElement('button');
+        downBtn.className = 'today-reorder-btn';
+        downBtn.textContent = '↓';
+        downBtn.disabled = i === places.length - 1;
+        downBtn.addEventListener('click', () => { reorderPlaceInDayPlan(dateStr, i, i + 1); });
+        reorderWrap.append(upBtn, downBtn);
+
+        const name = document.createElement('span');
+        name.className = 'today-stop-name';
+        name.textContent = place.name;
+
+        const tags = document.createElement('div');
+        tags.className = 'stop-tags';
+        if (place.category) tags.appendChild(catPill(place.category));
+
+        // Time display
+        if (place.startTime || place.endTime) {
+          const timeEl = document.createElement('span');
+          timeEl.className = 'today-stop-time';
+          timeEl.textContent = place.startTime && place.endTime
+            ? `${place.startTime}–${place.endTime}`
+            : (place.startTime || place.endTime);
+          tags.appendChild(timeEl);
+        }
+
+        // Edit time button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'today-edit-btn';
+        editBtn.textContent = '✏';
+        editBtn.setAttribute('aria-label', `Edit times for ${place.name}`);
+        editBtn.addEventListener('click', () => {
+          const existingEditor = row.nextElementSibling;
+          if (existingEditor && existingEditor.classList.contains('today-place-editor')) {
+            existingEditor.remove();
+            return;
+          }
+          document.querySelectorAll('.today-place-editor').forEach(el => el.remove());
+          const editor = document.createElement('div');
+          editor.className = 'today-place-editor';
+          const startLabel = document.createElement('label');
+          startLabel.textContent = 'Start';
+          const startIn = document.createElement('input');
+          startIn.type = 'time';
+          startIn.value = place.startTime || '';
+          startLabel.appendChild(startIn);
+          const endLabel = document.createElement('label');
+          endLabel.textContent = 'End';
+          const endIn = document.createElement('input');
+          endIn.type = 'time';
+          endIn.value = place.endTime || '';
+          endLabel.appendChild(endIn);
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'today-place-save-btn';
+          saveBtn.textContent = 'Save';
+          saveBtn.addEventListener('click', () => {
+            updatePlaceInTodayPlan(dateStr, i, { startTime: startIn.value, endTime: endIn.value });
+          });
+          editor.append(startLabel, endLabel, saveBtn);
+          row.insertAdjacentElement('afterend', editor);
+        });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'today-remove-btn';
+        removeBtn.textContent = '✕';
+        removeBtn.setAttribute('aria-label', `Remove ${place.name}`);
+        removeBtn.addEventListener('click', () => {
+          removePlaceFromTodayPlan(dateStr, place.name);
+        });
+
+        row.append(reorderWrap, name, tags, editBtn, removeBtn);
+        list.appendChild(row);
+
+        // Directions link — origin is Airbnb (first place) or previous place
+        const mapEntry = _dayCardMaps[dateStr];
+        const cityKey = mapEntry ? mapEntry.cityKey : 'london';
+        const airbnb = AIRBNB[cityKey];
+        const prevPlace = i === 0 ? null : places[i - 1];
+        const originStr = i === 0
+          ? (airbnb ? `${airbnb.lat},${airbnb.lng}` : '')
+          : (prevPlace.lat && prevPlace.lng ? `${prevPlace.lat},${prevPlace.lng}` : encodeURIComponent(prevPlace.name));
+        const destStr = place.lat && place.lng
+          ? `${place.lat},${place.lng}`
+          : encodeURIComponent(place.name);
+        if (originStr && destStr) {
+          const dirLink = document.createElement('a');
+          dirLink.className = 'stop-directions';
+          dirLink.href = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}`;
+          dirLink.target = '_blank';
+          dirLink.rel = 'noopener';
+          dirLink.textContent = i === 0 ? '→ directions from Airbnb' : '→ directions';
+          list.appendChild(dirLink);
+        }
+      });
+    }
+
+    section.appendChild(list);
+
+    // Update flex markers on the day card map
+    renderMyPlacesFlexMarkers(dateStr);
+  }
+
+  // Updates only the flexible place markers on a day card map.
+  // Called by renderMyPlacesSection and also when map becomes ready.
+  function renderMyPlacesFlexMarkers(dateStr) {
+    const entry = _dayCardMaps[dateStr];
+    if (!entry) return; // map not yet initialised
+    const { googleMap, fixedStops, airbnb } = entry;
+
+    // Clear old flex markers
+    (entry.flexMarkers || []).forEach(m => m.setMap(null));
+    entry.flexMarkers = [];
+
+    const places = getTodayPlanForDate(dateStr);
+    const flexWithCoords = places.filter(p => p.lat && p.lng);
+    if (flexWithCoords.length === 0) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    // Include fixed stops + airbnb in bounds
+    fixedStops.forEach(s => bounds.extend({ lat: s.lat, lng: s.lng }));
+    if (airbnb) bounds.extend({ lat: airbnb.lat, lng: airbnb.lng });
+
+    flexWithCoords.forEach((place, i) => {
+      const pos = { lat: place.lat, lng: place.lng };
+      const marker = new google.maps.Marker({
+        position: pos,
+        map: googleMap,
+        label: { text: String(fixedStops.length + i + 1), color: '#ffffff', fontSize: '11px', fontWeight: '700' },
+        title: place.name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#f97316',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+          labelOrigin: new google.maps.Point(0, 0),
+        },
+      });
+      marker.addListener('click', () => {
+        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`, '_blank');
+      });
+      bounds.extend(pos);
+      entry.flexMarkers.push(marker);
+    });
+
+    googleMap.fitBounds(bounds);
   }
 
   // ── FIREBASE CACHE + LIVE LISTENERS ─────────────────────────────
@@ -1488,10 +1605,10 @@
         [d, Array.isArray(v) ? v : Object.values(v).filter(Boolean)]
       )
     );
-    if (getActiveTab() === 'today') {
-      const sec = document.getElementById('view-today');
-      if (sec?._renderForDate) sec._renderForDate(sec._getActiveDate());
-    }
+    // Re-render My Places section for all day cards currently in the DOM
+    document.querySelectorAll('.my-places-section[data-date]').forEach(el => {
+      renderMyPlacesSection(el.dataset.date);
+    });
   });
 
   // ── CHECKLIST STATE ──────────────────────────────────────────────
@@ -1682,7 +1799,7 @@
   }
 
   // ── DAY PICKER MODAL ─────────────────────────────────────────────
-  function openDayPickerModal(placeObj, onAdded) {
+  function openDayPickerModal(placeObj) {
     const existing = document.getElementById('day-picker-modal');
     if (existing) existing.remove();
 
@@ -1705,9 +1822,8 @@
     dateInput.type = 'date';
     dateInput.min = '2026-07-04';
     dateInput.max = '2026-07-20';
-    const secToday = document.getElementById('view-today');
-    const activeDate = secToday?._getActiveDate?.() || '2026-07-04';
-    dateInput.value = (activeDate >= '2026-07-04' && activeDate <= '2026-07-20') ? activeDate : '2026-07-04';
+    const today = new Date().toISOString().slice(0, 10);
+    dateInput.value = (today >= '2026-07-04' && today <= '2026-07-20') ? today : '2026-07-04';
     dateField.appendChild(dateInput);
 
     // Time fields
@@ -1750,9 +1866,7 @@
         startTime: startInput.value || '',
         endTime: endInput.value || '',
       });
-      if (secToday?._renderForDate) secToday._renderForDate(chosenDate);
       overlay.remove();
-      if (onAdded) onAdded();
     });
 
     actions.append(cancelBtn, addBtn);
@@ -2155,36 +2269,15 @@
             mapsUrl: mapsSearchUrl,
           };
 
-          const btnPair = document.createElement('div');
-          btnPair.className = 'add-btn-pair';
-
-          const todayBtn = document.createElement('button');
-          todayBtn.className = 'add-to-today-btn';
-          todayBtn.textContent = '+ Today';
-          todayBtn.addEventListener('click', () => {
-            const secToday = document.getElementById('view-today');
-            const dateStr = secToday?._getActiveDate?.() || new Date().toISOString().slice(0, 10);
-            addPlaceToTodayPlan(dateStr, placeData);
-            todayBtn.textContent = 'Added ✓';
-            todayBtn.classList.add('added');
-            setTimeout(() => {
-              todayBtn.textContent = '+ Today';
-              todayBtn.classList.remove('added');
-            }, 1500);
-            if (secToday?._renderForDate) secToday._renderForDate(dateStr);
-            infoWin.close();
-          });
-
-          const otherDayBtn = document.createElement('button');
-          otherDayBtn.className = 'add-to-other-day-btn';
-          otherDayBtn.textContent = '+ Other Day';
-          otherDayBtn.addEventListener('click', () => {
+          const addDayBtn = document.createElement('button');
+          addDayBtn.className = 'add-to-today-btn';
+          addDayBtn.textContent = '+ Add to Day';
+          addDayBtn.addEventListener('click', () => {
             infoWin.close();
             openDayPickerModal(placeData);
           });
 
-          btnPair.append(todayBtn, otherDayBtn);
-          container.append(nameEl, mapsLink, btnPair);
+          container.append(nameEl, mapsLink, addDayBtn);
           infoWin.setContent(container);
           infoWin.open(map, marker);
         });
@@ -2233,30 +2326,16 @@
             mapsUrl: mapsSearchUrl,
           };
 
-          const todayBtn = document.createElement('button');
-          todayBtn.className = 'add-to-today-btn';
-          todayBtn.textContent = '+ Today';
-          todayBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            const secToday = document.getElementById('view-today');
-            const dateStr = secToday?._getActiveDate?.() || new Date().toISOString().slice(0, 10);
-            addPlaceToTodayPlan(dateStr, rowPlaceData);
-            todayBtn.textContent = 'Added ✓';
-            todayBtn.classList.add('added');
-            if (secToday?._renderForDate) secToday._renderForDate(dateStr);
-            setTimeout(() => actionBar.remove(), 1200);
-          });
-
-          const otherDayBtn = document.createElement('button');
-          otherDayBtn.className = 'add-to-other-day-btn';
-          otherDayBtn.textContent = '+ Other Day';
-          otherDayBtn.addEventListener('click', e => {
+          const addDayBtn = document.createElement('button');
+          addDayBtn.className = 'add-to-today-btn';
+          addDayBtn.textContent = '+ Add to Day';
+          addDayBtn.addEventListener('click', e => {
             e.stopPropagation();
             actionBar.remove();
             openDayPickerModal(rowPlaceData);
           });
 
-          actionBar.append(mapsLink, todayBtn, otherDayBtn);
+          actionBar.append(mapsLink, addDayBtn);
           row.insertAdjacentElement('afterend', actionBar);
         });
 
@@ -2309,240 +2388,6 @@
     return section;
   }
 
-  // ── TODAY TAB RENDERER ──────────────────────────────────────────
-  function renderTodayTab(dayMap) {
-    const section = document.createElement('section');
-    section.id = 'view-today';
-
-    // Date picker bar
-    const pickerBar = document.createElement('div');
-    pickerBar.className = 'today-date-picker-bar';
-    const pickerLabel = document.createElement('span');
-    pickerLabel.className = 'today-date-label';
-    pickerLabel.textContent = 'Planning day';
-    const dateInput = document.createElement('input');
-    dateInput.type = 'date';
-    dateInput.id = 'today-date-input';
-    dateInput.value = new Date().toISOString().slice(0, 10);
-    pickerBar.append(pickerLabel, dateInput);
-    section.appendChild(pickerBar);
-
-    // Route map container
-    const mapContainer = document.createElement('div');
-    mapContainer.id = 'today-map-container';
-    mapContainer.style.display = 'none';
-    section.appendChild(mapContainer);
-    let todayMap = null;
-
-    // Fixed events section
-    const fixedLabel = document.createElement('div');
-    fixedLabel.className = 'today-section-label';
-    fixedLabel.textContent = 'Fixed Events';
-    const fixedList = document.createElement('div');
-    fixedList.className = 'today-stop-list';
-
-    // My Places section
-    const flexLabel = document.createElement('div');
-    flexLabel.className = 'today-section-label';
-    flexLabel.textContent = 'My Places';
-    const flexList = document.createElement('div');
-    flexList.className = 'today-stop-list';
-
-    section.append(fixedLabel, fixedList, flexLabel, flexList);
-
-    function renderForDate(dateStr) {
-      const day = dayMap.get(dateStr);
-      const fixedStops = day
-        ? day.stops.filter(s => s.is_fixed).sort((a, b) => (a.start || '').localeCompare(b.start || ''))
-        : [];
-      const flexPlaces = getTodayPlanForDate(dateStr);
-
-      // Fixed events list
-      fixedList.innerHTML = '';
-      if (fixedStops.length === 0) {
-        const msg = document.createElement('div');
-        msg.className = 'today-empty-msg';
-        msg.textContent = 'No fixed events for this day.';
-        fixedList.appendChild(msg);
-      } else {
-        fixedStops.forEach(stop => {
-          const row = document.createElement('div');
-          row.className = 'today-stop-row';
-
-          const lock = document.createElement('span');
-          lock.className = 'today-lock-icon';
-          lock.textContent = '🔒';
-
-          const name = document.createElement('span');
-          name.className = 'today-stop-name';
-          name.textContent = stop.name;
-
-          const tags = document.createElement('div');
-          tags.className = 'stop-tags';
-          if (stop.category) tags.appendChild(catPill(stop.category));
-
-          row.append(lock, name, tags);
-
-          if (stop.start || stop.end) {
-            const timeEl = document.createElement('span');
-            timeEl.className = 'today-stop-time';
-            timeEl.textContent = stop.start && stop.end
-              ? `${stop.start}–${stop.end}`
-              : (stop.start || stop.end);
-            row.appendChild(timeEl);
-          }
-
-          fixedList.appendChild(row);
-        });
-      }
-
-      // My Places list
-      flexList.innerHTML = '';
-      if (flexPlaces.length === 0) {
-        const msg = document.createElement('div');
-        msg.className = 'today-empty-msg';
-        msg.textContent = 'No places added yet. Tap "+ Today" or "+ Other Day" on any map pin or list row.';
-        flexList.appendChild(msg);
-      } else {
-        flexPlaces.forEach((place, i) => {
-          const row = document.createElement('div');
-          row.className = 'today-stop-row';
-
-          // Reorder buttons
-          const reorderWrap = document.createElement('div');
-          reorderWrap.className = 'today-reorder-btns';
-          const upBtn = document.createElement('button');
-          upBtn.className = 'today-reorder-btn';
-          upBtn.textContent = '↑';
-          upBtn.disabled = i === 0;
-          upBtn.addEventListener('click', () => { reorderPlaceInDayPlan(dateStr, i, i - 1); renderForDate(dateStr); });
-          const downBtn = document.createElement('button');
-          downBtn.className = 'today-reorder-btn';
-          downBtn.textContent = '↓';
-          downBtn.disabled = i === flexPlaces.length - 1;
-          downBtn.addEventListener('click', () => { reorderPlaceInDayPlan(dateStr, i, i + 1); renderForDate(dateStr); });
-          reorderWrap.append(upBtn, downBtn);
-
-          const name = document.createElement('span');
-          name.className = 'today-stop-name';
-          name.textContent = place.name;
-
-          const tags = document.createElement('div');
-          tags.className = 'stop-tags';
-          if (place.category) tags.appendChild(catPill(place.category));
-
-          // Time display
-          if (place.startTime || place.endTime) {
-            const timeEl = document.createElement('span');
-            timeEl.className = 'today-stop-time';
-            timeEl.textContent = place.startTime && place.endTime
-              ? `${place.startTime}–${place.endTime}`
-              : (place.startTime || place.endTime);
-            tags.appendChild(timeEl);
-          }
-
-          // Edit time button
-          const editBtn = document.createElement('button');
-          editBtn.className = 'today-edit-btn';
-          editBtn.textContent = '✏';
-          editBtn.setAttribute('aria-label', `Edit times for ${place.name}`);
-          editBtn.addEventListener('click', () => {
-            const existingEditor = row.nextElementSibling;
-            if (existingEditor && existingEditor.classList.contains('today-place-editor')) {
-              existingEditor.remove();
-              return;
-            }
-            document.querySelectorAll('.today-place-editor').forEach(el => el.remove());
-            const editor = document.createElement('div');
-            editor.className = 'today-place-editor';
-            const startLabel = document.createElement('label');
-            startLabel.textContent = 'Start';
-            const startIn = document.createElement('input');
-            startIn.type = 'time';
-            startIn.value = place.startTime || '';
-            startLabel.appendChild(startIn);
-            const endLabel = document.createElement('label');
-            endLabel.textContent = 'End';
-            const endIn = document.createElement('input');
-            endIn.type = 'time';
-            endIn.value = place.endTime || '';
-            endLabel.appendChild(endIn);
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'today-place-save-btn';
-            saveBtn.textContent = 'Save';
-            saveBtn.addEventListener('click', () => {
-              updatePlaceInTodayPlan(dateStr, i, { startTime: startIn.value, endTime: endIn.value });
-              renderForDate(dateStr);
-            });
-            editor.append(startLabel, endLabel, saveBtn);
-            row.insertAdjacentElement('afterend', editor);
-          });
-
-          const removeBtn = document.createElement('button');
-          removeBtn.className = 'today-remove-btn';
-          removeBtn.textContent = '✕';
-          removeBtn.setAttribute('aria-label', `Remove ${place.name}`);
-          removeBtn.addEventListener('click', () => {
-            removePlaceFromTodayPlan(dateStr, place.name);
-            renderForDate(dateStr);
-          });
-
-          row.append(reorderWrap, name, tags, editBtn, removeBtn);
-          flexList.appendChild(row);
-        });
-      }
-
-      // Route map
-      const fixedWithCoords = fixedStops.filter(s => s.lat && s.lng);
-      const flexWithCoords  = flexPlaces.filter(p => p.lat && p.lng);
-      const allMapStops = [
-        ...fixedWithCoords.map((s, i) => ({ name: s.name, lat: parseFloat(s.lat), lng: parseFloat(s.lng), label: String(i + 1) })),
-        ...flexWithCoords.map((p, i)  => ({ name: p.name, lat: p.lat, lng: p.lng, label: String(fixedWithCoords.length + i + 1) })),
-      ];
-
-      mapContainer.style.display = allMapStops.length > 0 ? 'block' : 'none';
-
-      if (allMapStops.length > 0) {
-        whenMapsReady(() => {
-          if (dateInput.value !== dateStr) return; // stale callback guard
-          if (!todayMap) {
-            todayMap = new google.maps.Map(mapContainer, {
-              mapTypeControl: false, streetViewControl: false,
-              fullscreenControl: false, zoomControl: true,
-            });
-          }
-          (todayMap._markers || []).forEach(m => m.setMap(null));
-          todayMap._markers = [];
-
-          const bounds = new google.maps.LatLngBounds();
-          allMapStops.forEach(stop => {
-            const pos = { lat: stop.lat, lng: stop.lng };
-            const marker = new google.maps.Marker({
-              position: pos, map: todayMap,
-              label: stop.label,
-              title: stop.name,
-            });
-            marker.addListener('click', () => {
-              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}`, '_blank');
-            });
-            bounds.extend(pos);
-            todayMap._markers.push(marker);
-          });
-          todayMap.fitBounds(bounds);
-        });
-      }
-    }
-
-    renderForDate(dateInput.value);
-    dateInput.addEventListener('change', () => renderForDate(dateInput.value));
-
-    // Expose for Map tab callbacks
-    section._renderForDate = renderForDate;
-    section._getActiveDate = () => dateInput.value;
-
-    return section;
-  }
-
   // ── TAB SWITCHING ───────────────────────────────────────────────
   document.getElementById('tabs').addEventListener('click', e => {
     const tab = e.target.dataset.tab;
@@ -2561,20 +2406,18 @@
     loadMapsAPI();
 
     try {
-      const [itinRes, checkRes, budgetRes, placesRes] = await Promise.all([
-        fetch(ITINERARY_URL), fetch(CHECKLIST_URL), fetch(BUDGET_URL), fetch(PLACES_URL)
+      const [checkRes, budgetRes, placesRes] = await Promise.all([
+        fetch(CHECKLIST_URL), fetch(BUDGET_URL), fetch(PLACES_URL)
       ]);
 
-      if (!itinRes.ok)    throw new Error(`Itinerary fetch failed: HTTP ${itinRes.status}`);
       if (!checkRes.ok)   throw new Error(`Checklist fetch failed: HTTP ${checkRes.status}`);
       if (!budgetRes.ok)  throw new Error(`Budget fetch failed: HTTP ${budgetRes.status}`);
       if (!placesRes.ok)  throw new Error(`Places fetch failed: HTTP ${placesRes.status}`);
 
-      const [itinText, checkText, budgetText, placesText] = await Promise.all([
-        itinRes.text(), checkRes.text(), budgetRes.text(), placesRes.text()
+      const [checkText, budgetText, placesText] = await Promise.all([
+        checkRes.text(), budgetRes.text(), placesRes.text()
       ]);
 
-      const itinRows   = parseCSV(itinText);
       const checkRows  = parseCSV(checkText);
       const budgetRows = parseCSV(budgetText);
       const placesRows = parseCSV(placesText);
@@ -2587,107 +2430,16 @@
       secItin.id = 'view-itinerary';
       secItin.className = 'active';
 
-      // Search bar
-      const searchWrap = document.createElement('div');
-      searchWrap.className = 'itin-search-wrap';
-      const searchInput = document.createElement('input');
-      searchInput.type = 'search';
-      searchInput.className = 'itin-search-input';
-      searchInput.placeholder = 'Search stops, themes, categories…';
-      searchInput.setAttribute('aria-label', 'Search itinerary');
-      const clearBtn = document.createElement('button');
-      clearBtn.className = 'itin-search-clear';
-      clearBtn.textContent = '✕';
-      clearBtn.setAttribute('aria-label', 'Clear search');
-      searchWrap.append(searchInput, clearBtn);
-
-      // Category filter bar
-      const CATEGORIES = ['All', 'Food', 'Transport', 'Landmark', 'Museum', 'Shopping', 'Music'];
-      const filterBar = document.createElement('div');
-      filterBar.className = 'itin-filter-bar';
-      let activeFilter = 'all';
-      const filterBtns = CATEGORIES.map(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'itin-filter-btn' + (cat === 'All' ? ' active' : '');
-        btn.textContent = cat;
-        btn.dataset.cat = cat.toLowerCase();
-        btn.addEventListener('click', () => {
-          activeFilter = btn.dataset.cat;
-          filterBtns.forEach(b => b.classList.toggle('active', b === btn));
-          applyFilters();
-        });
-        filterBar.appendChild(btn);
-        return btn;
-      });
-
-      const noResults = document.createElement('div');
-      noResults.className = 'itin-no-results';
-      noResults.textContent = 'No stops match your search.';
-      secItin.append(searchWrap, filterBar, noResults);
-
-      const dayMap = groupByDay(itinRows);
-      const dayCards = [];
-      for (const day of dayMap.values()) {
+      const tripDays = generateTripDays();
+      for (const day of tripDays) {
         const card = renderDayCard(day);
-        card.dataset.searchText = [
-          day.day_theme,
-          day.city,
-          ...day.stops.map(s => [s.name, s.category, s.note].filter(Boolean).join(' '))
-        ].join(' ').toLowerCase();
-        card.dataset.categories = day.stops.map(s => (s.category || '').toLowerCase()).join(' ');
-        dayCards.push({ card, day });
         secItin.appendChild(card);
+        // Populate My Places from Firebase cache (may already have data)
+        renderMyPlacesSection(day.date);
       }
-
-      function applyFilters() {
-        const term = searchInput.value.trim().toLowerCase();
-        clearBtn.classList.toggle('visible', term.length > 0);
-        let anyVisible = false;
-        for (const { card, day } of dayCards) {
-          const matchesCat = activeFilter === 'all' || card.dataset.categories.includes(activeFilter);
-          const matchesSearch = !term || card.dataset.searchText.includes(term);
-          const visible = matchesCat && matchesSearch;
-          card.hidden = !visible;
-
-          // Restore stop names before re-highlighting
-          card.querySelectorAll('.stop-name[data-original]').forEach(el => {
-            el.textContent = el.dataset.original;
-            delete el.dataset.original;
-          });
-
-          if (visible) {
-            anyVisible = true;
-            if (term) {
-              card.querySelectorAll('.stop-name').forEach(el => {
-                const original = el.dataset.original || el.textContent;
-                el.dataset.original = original;
-                const idx = original.toLowerCase().indexOf(term);
-                if (idx === -1) {
-                  el.textContent = original;
-                } else {
-                  el.innerHTML = '';
-                  el.appendChild(document.createTextNode(original.slice(0, idx)));
-                  const mark = document.createElement('mark');
-                  mark.className = 'search-hl';
-                  mark.textContent = original.slice(idx, idx + term.length);
-                  el.appendChild(mark);
-                  el.appendChild(document.createTextNode(original.slice(idx + term.length)));
-                }
-              });
-            }
-          }
-        }
-        noResults.classList.toggle('visible', !anyVisible);
-      }
-
-      searchInput.addEventListener('input', applyFilters);
-      clearBtn.addEventListener('click', () => { searchInput.value = ''; applyFilters(); searchInput.focus(); });
 
       // — Places / Map section
       const secPlaces = renderMapTab(placesRows);
-
-      // — Today section
-      const secToday = renderTodayTab(dayMap);
 
       // — Checklist section
       _checkRows = checkRows; // store for Firebase live re-render
@@ -2698,7 +2450,7 @@
       // — Budget section
       const secBudget = document.createElement('section');
       secBudget.id = 'view-budget';
-      app.append(secItin, secPlaces, secCheck, secBudget, secToday);
+      app.append(secItin, secPlaces, secCheck, secBudget);
       renderBudget(budgetRows);
 
       // FAB for budget tab

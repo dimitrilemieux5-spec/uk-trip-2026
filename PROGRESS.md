@@ -398,35 +398,57 @@ Replaced all `localStorage` with Firebase Realtime Database (free Spark plan) so
 
 ---
 
-## Next Session — Firebase Sync (planned)
+## Session 14 — 2026-04-06
 
-### Goal
-Replace `localStorage` with **Firebase Realtime Database** so Dimitri and Charlotte can both use the app on their phones and see each other's changes (Day Plans, expenses, checklist statuses).
+### What we built
 
-### Why Firebase
-- Free Spark plan: 100 connections, 1 GB storage, 10 GB/month — they'll use <1% of each
-- No server, no credit card, no billing account required
-- Real-time sync (~1 second), with built-in offline persistence for the Underground
+**Merged Day Plans into Itinerary tab:**
 
-### What syncs to Firebase (currently in localStorage)
-| localStorage key | Firebase path |
-|---|---|
-| `uk_trip_today_plans` | `/day_plans` |
-| `uk_trip_expenses` | `/expenses` |
-| `uk_trip_checklist_state` | `/checklist` |
+Removed the separate "Day Plans" tab and folded its flexible place-building features directly into each day card on the Itinerary tab.
 
-### What stays unchanged
-Google Sheets CSV data (itinerary, places, checklist categories), Map tab, Itinerary tab, all UI/CSS, GitHub Pages hosting.
+**Changes:**
+- **Day Plans tab removed** — tab bar now has 4 tabs: Itinerary, Map, Checklist, Budget
+- **Each day card now has a "My Places" section** at the bottom, below the fixed sheet stops. Shows all flexible places added for that date from Firebase, with the same ↑↓ reorder, ✏ edit-time inline editor, and ✕ remove controls that were on Day Plans
+- **Flexible place markers on day card maps** — orange circle markers (numbered after fixed stops) appear on each day's embedded Google Map when places are added. Map bounds auto-expand to include them
+- **Firebase listener updated** — when any day_plans data changes, re-renders My Places section for all day cards currently in DOM (works across both phones in real-time)
+- **Map tab buttons simplified** — replaced "+ Today" / "+ Other Day" two-button pair with a single **"+ Add to Day"** button that opens the date picker modal
+- **Date picker modal** — now defaults to today's date (or trip start if before July 4). Firebase listener handles re-rendering automatically after add; no manual callback needed
+- Service worker bumped `uk-trip-v12` → `uk-trip-v13`
 
-### User must do BEFORE the session starts
-1. Go to [console.firebase.google.com](https://console.firebase.google.com)
-2. Create project → **Build → Realtime Database → Create database** (test mode, any region)
-3. **Project Settings → Your apps → Add web app** → copy the `firebaseConfig` object
-4. Have the config object ready to paste at session start
+### Remaining nice-to-haves
+- [ ] Add `is_fixed` column to itinerary sheet and mark locked events
+- [ ] Bilingual EN/FR toggle
+- [ ] Fix bad geocoded coordinates in the itinerary sheet and places sheet
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+- [ ] Firebase security (currently open rules — low risk for trip data, revisit post-trip if desired)
 
-### Implementation outline (full plan saved in Claude's plan file)
-1. Add Firebase compat SDK via CDN `<script>` tags
-2. Initialize Firebase with config + enable offline persistence
-3. Replace all localStorage helpers with Firebase listener-based equivalents
-4. Add async loading state on Budget, Checklist, Day Plans tabs
-5. Bump SW cache `v11` → `v12`
+---
+
+## Session 15 — 2026-04-07
+
+### What we built
+
+**Removed Google Sheets itinerary dependency — itinerary is now fully user-built:**
+
+The itinerary tab no longer fetches or displays data from the Google Sheet. Day cards are generated entirely from code (a hardcoded 19-day date range), and the full itinerary is built by adding places from the Map tab via "+ Add to Day".
+
+**Changes:**
+- **Day cards generated from code** — replaced `groupByDay(itinRows)` (sheet-driven) with `generateTripDays()` which produces 19 day objects for July 3–21, 2026. City assignment: July 11–18 = Edinburgh, all other days = London
+- **Itinerary CSV fetch removed** — `init()` no longer fetches `ITINERARY_URL`. Only 3 sheet fetches remain: checklist, budget, places
+- **Day card simplified** — removed day theme, fixed stop list, and direction links between sheet stops. Each card now shows only: day number, city badge, date, embedded map, and "My Places" section
+- **Map always shown** — all 19 days get an embedded map centered on the relevant Airbnb pin initially
+- **Search/filter bar removed** — was only useful for searching sheet stops
+- **Header date** updated from "July 4–20" to "July 3–21"
+- **Directions in My Places** — each place in the "My Places" list now has a "→ directions" link below it. First place uses the Airbnb as origin ("→ directions from Airbnb"); subsequent places use the previous place as origin. Origins update automatically on reorder
+- Service worker bumped `uk-trip-v13` → `uk-trip-v14`
+
+### Known data issue (fix next session)
+Some places in the `places_london` sheet (e.g. Raven Records) have wrong lat/lng coordinates pointing to the Airbnb area instead of the actual location. Directions links use stored lat/lng, so they route incorrectly for those places. Fix: look up correct coordinates on Google Maps, right-click the pin → "Copy coordinates", and update the row in the sheet.
+
+### Remaining nice-to-haves
+- [ ] Fix wrong coordinates for affected places in the places sheet (e.g. Raven Records)
+- [ ] Bilingual EN/FR toggle
+- [ ] Update `GBP_TO_CAD` closer to the trip date
+- [ ] Populate the places sheet with more Edinburgh landmarks, restaurants, and activities
+- [ ] Firebase security (currently open rules — low risk for trip data, revisit post-trip if desired)
